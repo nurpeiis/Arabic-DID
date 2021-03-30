@@ -1,0 +1,7 @@
+msa,0
+gulf_aden,1
+iraq,2
+levant,3
+maghreb,4
+gulf,5
+nile_basin,6

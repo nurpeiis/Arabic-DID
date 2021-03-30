@@ -1,0 +1,16 @@
+msa,0
+eg,1
+iq,2
+jo,3
+lb,4
+ly,5
+ma,6
+dz,7
+om,8
+ps,9
+qa,10
+sa,11
+sd,12
+sy,13
+tn,14
+ye,15

@@ -33,12 +33,14 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-train_df = pd.read_json(f"{args.data_dir}/train.jsonl",
-                        lines=True, orient="records")
-val_df, test_df = train_test_split(
-    pd.read_json(f"{args.data_dir}/val.jsonl", lines=True, orient="records"),
-    test_size=0.5,
-)
+folder = '../hierarchical-did/data_processed_second/madar_shared_task1/'
+train_df = data_utils.get_df_from_files(
+    [f'{folder}MADAR-Corpus-26-train.lines', f'{folder}MADAR-Corpus-6-train.lines'])
+test_df = data_utils.get_df_from_files(
+    [f'{folder}MADAR-Corpus-26-test.lines'])
+val_df = data_utils.get_df_from_files(
+    [f'{folder}MADAR-Corpus-26-dev.lines', f'{folder}MADAR-Corpus-6-dev.lines'])
+
 
 tokenizer = AutoTokenizer.from_pretrained(
     'CAMeL-Lab/bert-base-camelbert-mix')
@@ -64,8 +66,8 @@ trainer = Trainer(
     tokenizer=tokenizer,
     compute_metrics=finetuning_utils.compute_metrics
 )
-
-
+trainer.train()
+"""
 best_trial = trainer.hyperparameter_search(
     hp_space=lambda _: {
         "learning_rate": tune.uniform(1e-5, 5e-5),
@@ -79,16 +81,4 @@ best_trial = trainer.hyperparameter_search(
 print(f'Run ID: {best_trial[0]}')
 print(f'Objective: {best_trial[1]}')
 print(f'Hyperparameters: {best_trial[2]}')
-
-#
-# Choose among schedulers:
-# https://docs.ray.io/en/latest/tu
-# TODO: Initialize a transformers.Trainer object and run a Bayesian
-# hyperparameter search for at least 5 trials (but not too many) on the
-# learning rate. Hint: use the model_init() and
-# compute_metrics() methods from finetuning_utils.py as arguments to
-# trainer.hyperparameter_search(). Use the hp_space parameter to specify
-# your hyperparameter search space. (Note that this parameter takes a function
-# as its value.)
-# Also print out the run ID, objective value,
-# and hyperparameters of your best run.
+"""

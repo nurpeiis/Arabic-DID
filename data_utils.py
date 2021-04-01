@@ -1,4 +1,5 @@
 import torch
+import pandas as pd
 
 
 def encode_data(dataset, tokenizer, max_seq_length=128):
@@ -33,19 +34,42 @@ def encode_data(dataset, tokenizer, max_seq_length=128):
     return input_ids, attention_mask
 
 
-def extract_labels(dataset):
+def get_df_from_files(files):
+    if len(files) == 0:
+        return pd.DataFrame()
+    df = pd.read_csv(
+        files[0], sep='\t', header=0)
+    for i in range(1, len(files)):
+        df = df.append(pd.read_csv(
+            files[i], sep='\t', header=0), ignore_index=True)
+
+    return df
+
+
+def extract_labels(dataset, level, label_space_file=''):
     """Converts labels into numerical labels.
 
-  Args:
-    dataset: A Pandas dataframe containing the labels in the column 'label'.
+    Args:
+      dataset: A Pandas dataframe containing the labels in the column 'label'.
+      level: A level at which the labels are
+      label_space_file: A file for label space, where dialect converted to integer
+    Returns:
+      labels: A list of integers corresponding to the labels for each example
+    """
 
-  Returns:
-    labels: A list of integers corresponding to the labels for each example
-  """
-    labels = dataset['label'].tolist()
+    labels = dataset[f'dialect_{level}_id'].tolist()
+    dictionary_label_to_index = dict()
+    if label_space_file == '':
+        label_space_file = f'labels/{level}_label_id.txt'
+    with open(label_space_file, 'r') as f:
+        lines = f.readlines()
+        for l in lines:
+            dictionary_label_to_index[l.split(',')[0]] = int(
+                l.split(',')[1][:-1])
+
     for i in range(len(labels)):
-        if labels[i] == True:
-            labels[i] = 1
+        if labels[i] in dictionary_label_to_index:
+            labels[i] = dictionary_label_to_index[labels[i]]
         else:
             labels[i] = 0
 

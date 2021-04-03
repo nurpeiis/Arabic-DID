@@ -165,8 +165,8 @@ def evaluate(model, dev_dataloader, cross_entropy, device):
 
             # Calculate the accuracy for this batch of test sentences.
             tmp_metrics = metrics(preds_a, label_ids,  total_metrics)
-            print(f'Tmp metrics {tmp_metrics}%')
-        total_preds.append(preds)
+            #print(f'Tmp metrics {tmp_metrics}%')
+        total_preds.append(preds_a)
 
     # compute the validation loss of the epoch
     avg_loss = total_loss / len(dev_dataloader)

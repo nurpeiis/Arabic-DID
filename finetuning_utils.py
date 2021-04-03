@@ -27,5 +27,6 @@ def cost_function(cost_dict):
 def model_init():
     """Returns an initialized model for use in a Hugging Face Trainer."""
 
-    model = AutoModel.from_pretrained('CAMeL-Lab/bert-base-camelbert-mix')
+    model = AutoModel.from_pretrained(
+        'CAMeL-Lab/bert-base-camelbert-mix')
     return model

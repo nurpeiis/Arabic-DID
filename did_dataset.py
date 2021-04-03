@@ -9,19 +9,21 @@ class DIDDataset(Dataset):
     A torch.utils.data.Dataset wrapper for the DID.
     """
 
-    def __init__(self, dataframe, tokenizer, max_seq_length=256):
+    def __init__(self, dataframe, tokenizer, level, label_space_file='',  max_seq_length=256):
         """
         Args:
           dataframe: A Pandas dataframe containing the data.
           tokenizer: A transformers.PreTrainedTokenizerFast object that is used to
             tokenize the data.
+          level: A level at which the labels are
+          label_space_file: A file for label space, where dialect converted to integer
           max_seq_length: Maximum sequence length to either pad or truncate every
             input example to.
         """
         self.encoded_data = data_utils.encode_data(
             dataframe, tokenizer, max_seq_length)
-        # TODO: Use extract_labels() from data_utils to store the labels.
-        self.label_list = data_utils.extract_labels(dataframe)
+        self.label_list = data_utils.extract_labels(
+            dataframe, level, label_space_file)
 
     def __len__(self):
         return len(self.label_list)
@@ -33,7 +35,5 @@ class DIDDataset(Dataset):
             label for the i-th example, with the values being numeric tensors
             and the keys being 'input_ids', 'attention_mask', and 'labels'.
         """
-        # TODO: Return the i-th example as a dictionary with the keys and values
-        # specified in the function docstring. You should be able to extract the
-        # necessary values from self.encoded_data and self.label_list.
+        print('here')
         return {'input_ids': self.encoded_data[0][i], 'attention_mask':  self.encoded_data[1][i], 'labels': torch.tensor(self.label_list[i], dtype=torch.long)}

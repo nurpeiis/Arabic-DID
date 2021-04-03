@@ -72,5 +72,4 @@ def extract_labels(dataset, level, label_space_file=''):
             labels[i] = dictionary_label_to_index[labels[i]]
         else:
             labels[i] = 0
-
     return labels

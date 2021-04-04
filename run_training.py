@@ -45,7 +45,7 @@ epochs = 3
 learning_rate = 1e-5
 
 print('Getting data')
-folder = '../hierarchical-did/data_processed_second/madar_shared_task1/'
+folder = '../data_processed_second/madar_shared_task1/'
 train_df = data_utils.get_df_from_files(
     [f'{folder}MADAR-Corpus-26-train.lines', f'{folder}MADAR-Corpus-6-train.lines'])
 test_df = data_utils.get_df_from_files(

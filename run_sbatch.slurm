@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=roberta_hyperparameter_search
+#SBATCH --job-name=arabic_did
 #SBATCH --output=%j_%x.out
 #SBATCH --error=%j_%x.err
 #SBATCH --nodes=1

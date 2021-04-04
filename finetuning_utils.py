@@ -12,9 +12,6 @@ def compute_metrics(eval_pred):
     """Computes accuracy, f1, precision, and recall from a 
     transformers.trainer_utils.EvalPrediction object.
     """
-    # TODO: Return a dictionary containing the accuracy, f1, precision, and recall scores.
-    # You may use sklearn's precision_recall_fscore_support and accuracy_score methods.
-
     labels = eval_pred.label_ids
     preds = eval_pred.predictions.argmax(-1)
     precision, recall, f1, _ = precision_recall_fscore_support(
@@ -59,10 +56,11 @@ def train(model, train_dataloader, cross_entropy, optimizer, device):
     for step, batch in enumerate(train_dataloader):
 
         # progress update after every 50 batches.
+        """
         if step % 50 == 0 and not step == 0:
             print('  Batch {:>5,}  of  {:>5,}.'.format(
                 step, len(train_dataloader)))
-
+        """
         # push the batch to gpu
         #batch = [r.to(device) for r in batch]
 
@@ -141,9 +139,10 @@ def evaluate(model, dev_dataloader, cross_entropy, device):
             #elapsed = format_time(time.time() - t0)
 
             # Report progress.
+            """
             print('  Batch {:>5,}  of  {:>5,}.'.format(
                 step, len(dev_dataloader)))
-
+            """
         # push the batch to gpu
         input_ids = batch['input_ids'].to(device)
         mask = batch['attention_mask'].to(device)

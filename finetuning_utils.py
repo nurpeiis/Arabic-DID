@@ -71,8 +71,11 @@ def train(model, train_dataloader, cross_entropy, optimizer, device):
         model.zero_grad()
 
         # get model predictions for the current batch
-        preds = model(input_ids, mask)
+        # potentially softmax
 
+        preds = model(input_ids, mask)
+        #soft = torch.nn.LogSoftmax(dim=-1)
+        #max = soft(preds)
         # compute the loss between actual and predicted values
         loss = cross_entropy(preds, labels)
 

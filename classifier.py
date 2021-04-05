@@ -26,9 +26,9 @@ class Classifier(nn.Module):
     def forward(self, input_ids, mask):
 
         # pass the inputs to the model
-        _, cls_hs = self.bert(input_ids, attention_mask=mask)[:2]
+        out = self.bert(input_ids, attention_mask=mask)
 
-        x = self.fc1(cls_hs)
+        x = self.fc1(out[1])
 
         x = self.relu(x)
 

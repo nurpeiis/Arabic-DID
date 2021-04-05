@@ -76,6 +76,8 @@ test_dataloader = DataLoader(
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f'{device} device for training')
 bert = finetuning_utils.model_init()
+#TODO: hidden_size1  = bert.config.hidden_size
+
 model = Classifier(bert, dropout_prob, hidden_size1, hidden_size2, num_classes)
 model.to(device)
 
@@ -84,7 +86,7 @@ model.to(device)
 # define the optimizer
 optimizer = AdamW(model.parameters(),
                   lr=learning_rate)
-cross_entropy = nn.NLLLoss()
+cross_entropy = nn.CrossEntropyLoss()
 
 
 best_valid_loss = float('inf')

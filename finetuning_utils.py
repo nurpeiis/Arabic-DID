@@ -181,6 +181,60 @@ def evaluate(model, dev_dataloader, cross_entropy, device):
     return avg_loss, total_preds, avg_metrics
 
 
+def test(model, test_dataloader, cross_entropy, device):
+
+    print("\nTesting...")
+
+    # deactivate dropout layers
+    model.eval()
+
+    total_loss = 0
+    list_metrics = ['accuracy', 'precision', 'recall', 'f1']
+    total_metrics = {}
+    for m in list_metrics:
+        total_metrics[m] = 0
+
+    # empty list to save the model predictions
+    total_preds = []
+
+    # iterate over batches
+    for step, batch in enumerate(test_dataloader):
+
+        # push the batch to gpu
+        input_ids = batch['input_ids'].to(device)
+        mask = batch['attention_mask'].to(device)
+        labels = batch['labels'].to(device)
+
+        # deactivate autograd
+        with torch.no_grad():
+
+            # model predictions
+            preds = model(input_ids, mask)
+
+            # compute the validation loss between actual and predicted values
+            loss = cross_entropy(preds, labels)
+
+            total_loss = total_loss + loss.item()
+
+            preds_a = preds.detach().cpu().numpy()
+            label_ids = labels.to('cpu').numpy()
+
+            # Calculate the accuracy for this batch of test sentences.
+            tmp_metrics = metrics(preds_a, label_ids,  total_metrics)
+            #print(f'Tmp metrics {tmp_metrics}%')
+        total_preds.append(preds_a)
+
+    # compute the validation loss of the epoch
+    avg_loss = total_loss / len(test_dataloader)
+    avg_metrics = {}
+    for m in list_metrics:
+        avg_metrics[m] = total_metrics[m] / len(test_dataloader)
+    # reshape the predictions in form of (number of samples, no. of classes)
+    total_preds = np.concatenate(total_preds, axis=0)
+
+    return avg_loss, total_preds, avg_metrics
+
+
 def model_init():
     """Returns an initialized model for use in a Hugging Face Trainer."""
 

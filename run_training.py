@@ -41,8 +41,9 @@ dropout_prob = 0.1
 hidden_size1 = 768
 hidden_size2 = 512
 num_classes = 26
-epochs = 3
+epochs = 10
 learning_rate = 1e-5
+early_stop_patience = 2
 
 print('Getting data')
 folder = '../data_processed_second/madar_shared_task1/'
@@ -76,7 +77,7 @@ test_dataloader = DataLoader(
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f'{device} device for training')
 bert = finetuning_utils.model_init()
-#TODO: hidden_size1  = bert.config.hidden_size
+hidden_size1 = bert.config.hidden_size
 
 model = Classifier(bert, dropout_prob, hidden_size1, hidden_size2, num_classes)
 model.to(device)
@@ -94,7 +95,8 @@ best_valid_loss = float('inf')
 # empty lists to store training and validation loss of each epoch
 train_losses = []
 valid_losses = []
-
+n_no_improvement = 0
+# TODO: Early stopping criterion and HyperParameter search
 # for each epoch
 for epoch in range(epochs):
     print(f'Epoch {epoch+1}/{epochs}')
@@ -108,7 +110,10 @@ for epoch in range(epochs):
 
     if valid_loss < best_valid_loss:
         best_valid_loss = valid_loss
-        torch.save(model.state_dict(), 'saved_weights.pt')
+        torch.save(model.state_dict(), 'saved_weights_early_stop.pt')
+        n_no_improvement = 0
+    else:
+        n_no_improvement += 1
 
     train_losses.append(train_loss)
     valid_losses.append(valid_loss)
@@ -117,3 +122,19 @@ for epoch in range(epochs):
         f'Training Loss: {train_loss:.3f}, Training Metrics: {train_metrics}')
     print(
         f'Validation Loss: {valid_loss:.3f}, Validation Metrics: {valid_metrics}')
+    if n_no_improvement > early_stop_patience:
+        print(f'Early stopping at epoch {epoch + 1}')
+        break
+
+
+# test at the end after training
+bert_test = finetuning_utils.model_init()
+model_test = Classifier(bert_test, dropout_prob, hidden_size1,
+                        hidden_size2, num_classes)
+model_test.to(device)
+model_test.load_state_dict(torch.load('saved_weights_early_stop.pt'))
+test_loss, _, test_metrics = finetuning_utils.test(model_test, test_dataloader,
+                                                   cross_entropy, device)
+
+print(
+    f'Test Loss: {test_loss:.3f}, Test Metrics: {test_metrics}')

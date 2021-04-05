@@ -32,4 +32,5 @@ conda activate  arabic-did
 
 - Learn how to assign weights based on the distance 
 - jerusalem ps gives some location in london
-- al_suwayda is not syrian location, it is as suwayds
+- al_suwayda is not syrian location, it is as suwayda
+- what should we do with msa distance? equidistant with everyone

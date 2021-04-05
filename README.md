@@ -31,3 +31,5 @@ conda activate  arabic-did
 ## Future Works
 
 - Learn how to assign weights based on the distance 
+- jerusalem ps gives some location in london
+- al_suwayda is not syrian location, it is as suwayds

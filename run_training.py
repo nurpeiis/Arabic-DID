@@ -33,9 +33,9 @@ parser.add_argument(
 
 args = parser.parse_args()
 level = args.level
-train_batch_size = 8
+train_batch_size = 32
 val_batch_size = 32
-test_batch_size = 32
+test_batch_size = 1
 max_seq_length = 64
 dropout_prob = 0.1
 hidden_size1 = 768
@@ -44,6 +44,7 @@ num_classes = 26
 epochs = 10
 learning_rate = 1e-5
 early_stop_patience = 2
+metric = 'f1'
 
 print('Getting data')
 folder = '../data_processed_second/madar_shared_task1/'
@@ -57,15 +58,15 @@ val_df = data_utils.get_df_from_files(
 print('Loading tokenizer')
 tokenizer = AutoTokenizer.from_pretrained(
     'CAMeL-Lab/bert-base-camelbert-mix')
-print('In data utils Dataset object')
+print('Getting Dataset object')
 train_data = did_dataset.DIDDataset(
-    train_df, tokenizer, level, 'labels/madar_labels_city.txt', max_seq_length)
+    train_df, tokenizer, level, f'labels/madar_labels_{level}.txt', max_seq_length)
 val_data = did_dataset.DIDDataset(
-    val_df, tokenizer, level, 'labels/madar_labels_city.txt', max_seq_length)
+    val_df, tokenizer, level, f'labels/madar_labels_{level}.txt', max_seq_length)
 test_data = did_dataset.DIDDataset(
-    test_df, tokenizer, level, 'labels/madar_labels_city.txt', max_seq_length)
+    test_df, tokenizer, level, f'labels/madar_labels_{level}.txt', max_seq_length)
 
-
+print('Getting DataLoader objects')
 # dataLoader for train set
 train_dataloader = DataLoader(
     train_data, shuffle=True, batch_size=train_batch_size, num_workers=0)
@@ -90,51 +91,73 @@ optimizer = AdamW(model.parameters(),
 cross_entropy = nn.CrossEntropyLoss()
 
 
-best_valid_loss = float('inf')
+best_valid_metric = 0
+best_valid_epoch = 0
+if metric == 'loss':
+    best_valid_metric = float('inf')
 
 # empty lists to store training and validation loss of each epoch
-train_losses = []
-valid_losses = []
+train_metrics_list = []
+valid_metrics_list = []
+train_predictions_list = []
+valid_predictions_list = []
 n_no_improvement = 0
-# TODO: Early stopping criterion and HyperParameter search
+
+print('Starting training')
+
 # for each epoch
 for epoch in range(epochs):
     print(f'Epoch {epoch+1}/{epochs}')
     # train model
-    train_loss, _, train_metrics = finetuning_utils.train(model, train_dataloader,
-                                                          cross_entropy, optimizer, device)
+    train_predictions, train_metrics = finetuning_utils.train(model, train_dataloader,
+                                                              cross_entropy, optimizer, device)
 
     # evaluate model
-    valid_loss, _, valid_metrics = finetuning_utils.evaluate(model, val_dataloader,
-                                                             cross_entropy, device)
+    valid_predictions, valid_metrics = finetuning_utils.evaluate(model, val_dataloader,
+                                                                 cross_entropy, device)
+    # get best metric
+    if metric == 'loss' and valid_metrics[metric] < best_valid_metric:
+        best_valid_epoch = epoch
+        best_valid_metric = valid_metrics[metric]
+        torch.save(model.state_dict(),
+                   f'saved_weights_early_stop_{best_valid_epoch}_{metric}.pt')
+        n_no_improvement = 0
 
-    if valid_loss < best_valid_loss:
-        best_valid_loss = valid_loss
-        torch.save(model.state_dict(), 'saved_weights_early_stop.pt')
+    elif metric != 'loss' and valid_metrics[metric] > best_valid_metric:
+        best_valid_epoch = epoch
+        best_valid_metric = valid_metrics[metric]
+        torch.save(model.state_dict(),
+                   f'saved_weights_early_stop_{best_valid_epoch}_{metric}.pt')
         n_no_improvement = 0
     else:
         n_no_improvement += 1
 
-    train_losses.append(train_loss)
-    valid_losses.append(valid_loss)
+    train_metrics_list.append(train_metrics)
+    valid_metrics_list.append(valid_metrics)
+    train_predictions_list.append(train_predictions)
+    valid_predictions_list.append(valid_predictions)
 
     print(
-        f'Training Loss: {train_loss:.3f}, Training Metrics: {train_metrics}')
+        f'Training Metrics: {train_metrics}')
     print(
-        f'Validation Loss: {valid_loss:.3f}, Validation Metrics: {valid_metrics}')
+        f'Validation Metrics: {valid_metrics}')
     if n_no_improvement > early_stop_patience:
         print(f'Early stopping at epoch {epoch + 1}')
         break
 
+# print best metrics
+print(
+    f'Best validation epoch is {best_valid_epoch + 1} with metrics: {valid_metrics_list[epoch]}\nModel can be found here saved_weights_early_stop_{best_valid_epoch}_{metric}.pt')
 
 # test at the end after training
 bert_test = finetuning_utils.model_init()
 model_test = Classifier(bert_test, dropout_prob, hidden_size1,
                         hidden_size2, num_classes)
 model_test.to(device)
-model_test.load_state_dict(torch.load('saved_weights_early_stop.pt'))
-test_loss, _, test_metrics = finetuning_utils.test(model_test, test_dataloader,
-                                                   cross_entropy, device)
+model_test.load_state_dict(torch.load(
+    f'saved_weights_early_stop_{best_valid_epoch}_{metric}.pt'))
+test_predictions, test_metrics = finetuning_utils.test(model_test, test_dataloader,
+                                                       cross_entropy, device)
 
 print(
-    f'Test Loss: {test_loss:.3f}, Test Metrics: {test_metrics}')
+    f'Test Metrics: {test_metrics}')

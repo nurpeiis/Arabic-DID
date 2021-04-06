@@ -34,3 +34,9 @@ conda activate  arabic-did
 - jerusalem ps gives some location in london
 - al_suwayda is not syrian location, it is as suwayda
 - what should we do with msa distance? equidistant with everyone
+  - msa will never give or get anything. It will only give to msa
+  
+
+- Distance penalty: alpha = distance/max distance
+  - soft margin svm
+  - the further it goes away the more penalty, distance exponentially

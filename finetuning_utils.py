@@ -44,8 +44,7 @@ def train(model, train_dataloader, cross_entropy, optimizer, device):
 
     model.train()
 
-    total_loss = 0
-    list_metrics = ['accuracy', 'precision', 'recall', 'f1']
+    list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
     total_metrics = {}
     for m in list_metrics:
         total_metrics[m] = 0
@@ -55,15 +54,7 @@ def train(model, train_dataloader, cross_entropy, optimizer, device):
     # iterate over batches
     for step, batch in enumerate(train_dataloader):
 
-        # progress update after every 50 batches.
-        """
-        if step % 50 == 0 and not step == 0:
-            print('  Batch {:>5,}  of  {:>5,}.'.format(
-                step, len(train_dataloader)))
-        """
         # push the batch to gpu
-        #batch = [r.to(device) for r in batch]
-
         input_ids = batch['input_ids'].to(device)
         mask = batch['attention_mask'].to(device)
         labels = batch['labels'].to(device)
@@ -78,9 +69,7 @@ def train(model, train_dataloader, cross_entropy, optimizer, device):
         #max = soft(preds)
         # compute the loss between actual and predicted values
         loss = cross_entropy(preds, labels)
-
-        # add on to the total loss
-        total_loss = total_loss + loss.item()
+        total_metrics['loss'] += loss
 
         # backward pass to calculate the gradients
         loss.backward()
@@ -102,8 +91,7 @@ def train(model, train_dataloader, cross_entropy, optimizer, device):
         # append the model predictions
         total_preds.append(preds_a)
 
-    # compute the training loss of the epoch
-    avg_loss = total_loss / len(train_dataloader)
+    # compute the average metrics
     avg_metrics = {}
     for m in list_metrics:
         avg_metrics[m] = total_metrics[m] / len(train_dataloader)
@@ -112,7 +100,7 @@ def train(model, train_dataloader, cross_entropy, optimizer, device):
     total_preds = np.concatenate(total_preds, axis=0)
 
     # returns the loss and predictions
-    return avg_loss, total_preds, avg_metrics
+    return total_preds, avg_metrics
 # function for evaluating the model
 
 
@@ -123,8 +111,7 @@ def evaluate(model, dev_dataloader, cross_entropy, device):
     # deactivate dropout layers
     model.eval()
 
-    total_loss = 0
-    list_metrics = ['accuracy', 'precision', 'recall', 'f1']
+    list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
     total_metrics = {}
     for m in list_metrics:
         total_metrics[m] = 0
@@ -135,17 +122,6 @@ def evaluate(model, dev_dataloader, cross_entropy, device):
     # iterate over batches
     for step, batch in enumerate(dev_dataloader):
 
-        # Progress update every 50 batches.
-        if step % 50 == 0 and not step == 0:
-
-            # Calculate elapsed time in minutes.
-            #elapsed = format_time(time.time() - t0)
-
-            # Report progress.
-            """
-            print('  Batch {:>5,}  of  {:>5,}.'.format(
-                step, len(dev_dataloader)))
-            """
         # push the batch to gpu
         input_ids = batch['input_ids'].to(device)
         mask = batch['attention_mask'].to(device)
@@ -159,8 +135,7 @@ def evaluate(model, dev_dataloader, cross_entropy, device):
 
             # compute the validation loss between actual and predicted values
             loss = cross_entropy(preds, labels)
-
-            total_loss = total_loss + loss.item()
+            total_metrics['loss'] += loss
 
             preds_a = preds.detach().cpu().numpy()
             label_ids = labels.to('cpu').numpy()
@@ -170,15 +145,14 @@ def evaluate(model, dev_dataloader, cross_entropy, device):
             #print(f'Tmp metrics {tmp_metrics}%')
         total_preds.append(preds_a)
 
-    # compute the validation loss of the epoch
-    avg_loss = total_loss / len(dev_dataloader)
+    # compute avg metrics
     avg_metrics = {}
     for m in list_metrics:
         avg_metrics[m] = total_metrics[m] / len(dev_dataloader)
     # reshape the predictions in form of (number of samples, no. of classes)
     total_preds = np.concatenate(total_preds, axis=0)
 
-    return avg_loss, total_preds, avg_metrics
+    return total_preds, avg_metrics
 
 
 def test(model, test_dataloader, cross_entropy, device):
@@ -188,8 +162,7 @@ def test(model, test_dataloader, cross_entropy, device):
     # deactivate dropout layers
     model.eval()
 
-    total_loss = 0
-    list_metrics = ['accuracy', 'precision', 'recall', 'f1']
+    list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
     total_metrics = {}
     for m in list_metrics:
         total_metrics[m] = 0
@@ -213,8 +186,7 @@ def test(model, test_dataloader, cross_entropy, device):
 
             # compute the validation loss between actual and predicted values
             loss = cross_entropy(preds, labels)
-
-            total_loss = total_loss + loss.item()
+            total_metrics['loss'] += loss
 
             preds_a = preds.detach().cpu().numpy()
             label_ids = labels.to('cpu').numpy()
@@ -224,15 +196,14 @@ def test(model, test_dataloader, cross_entropy, device):
             #print(f'Tmp metrics {tmp_metrics}%')
         total_preds.append(preds_a)
 
-    # compute the validation loss of the epoch
-    avg_loss = total_loss / len(test_dataloader)
+    # compute avg metrics
     avg_metrics = {}
     for m in list_metrics:
         avg_metrics[m] = total_metrics[m] / len(test_dataloader)
     # reshape the predictions in form of (number of samples, no. of classes)
     total_preds = np.concatenate(total_preds, axis=0)
 
-    return avg_loss, total_preds, avg_metrics
+    return total_preds, avg_metrics
 
 
 def model_init():

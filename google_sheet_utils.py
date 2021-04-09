@@ -3,7 +3,7 @@ import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 
 
-def login(sheet_name, credentials_json='google_credentials.json'):
+def get_sheet(sheet_name, credentials_json='google_credentials.json'):
 
     # define the scope
     scope = ['https://spreadsheets.google.com/feeds',

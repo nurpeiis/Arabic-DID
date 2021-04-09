@@ -45,6 +45,7 @@ def rewrite_page(sheet, page, df):
       page: index of the page in the sheet
       df: Pandas dataframe to update
     """
+    # TODO: Handle NaN values
     sheet_instance = sheet.get_worksheet(page)
     sheet_instance.update([df.columns.values.tolist()] +
                           df.values.tolist())

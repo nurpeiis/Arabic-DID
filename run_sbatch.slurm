@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=arabic_did
-#SBATCH --output=%j_%x.out
-#SBATCH --error=%j_%x.err
+#SBATCH --output=%j.out
+#SBATCH --error=%j.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4
@@ -17,4 +17,4 @@ SRCDIR=$SCRATCH/
 cd $SRCDIR/arabic-did
 source $SRCDIR/miniconda3/bin/activate
 conda activate mllu
-python run_training.py city
+python run_experiment.py %j

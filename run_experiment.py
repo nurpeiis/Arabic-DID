@@ -46,10 +46,7 @@ def main():
     logging.info('Initializing training variables')
     args = parser.parse_args()
     params['logger_file'] = args.logger_file
-    # datetime object containing current date and time
-    now = datetime.now()
-    dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
-    params['time'] = dt_string
+
     params['bert'] = 'CAMeL-Lab/bert-base-camelbert-mix'
     params['tokenizer'] = 'CAMeL-Lab/bert-base-camelbert-mix'
     params['level'] = 'city'
@@ -63,27 +60,32 @@ def main():
     params['learning_rate'] = 1e-5
     params['early_stop_patience'] = 2
     params['metric'] = 'accuracy'
-    madar_folder = '../hierarchical-did/data_processed_second/madar_shared_task1/'
+    madar_folder = '../data_processed_second/madar_shared_task1/'
     params['train_files'] = [
         f'{madar_folder}MADAR-Corpus-26-train.lines', f'{madar_folder}MADAR-Corpus-6-train.lines']
     params['val_files'] = [
         f'{madar_folder}MADAR-Corpus-26-dev.lines', f'{madar_folder}MADAR-Corpus-6-dev.lines']
     params['label_space_file'] = f'labels/madar_labels_{params["level"]}.txt'
-    params['model_folder'] = f'{dt_string}'
-    os.mkdir(params['model_folder'])
 
-    # for metric in list_metrics:
-    logging.info('Entering Training')
-    train_results = run_train(params)
-    logging.info('Entering Testing')
-    params['model_file'] = train_results['model_file']
-    params['test_files'] = [f'{madar_folder}MADAR-Corpus-26-test.lines']
-    params['test_batch_size'] = 8
-    test_results, test_predictions = run_test(params)
+    for metric in list_metrics:
+        logging.info('Entering Training')
+        # datetime object containing current date and time
+        now = datetime.now()
+        dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
+        params['time'] = dt_string
+        params['metric'] = metric
+        params['model_folder'] = f'{dt_string}'
+        os.mkdir(params['model_folder'])
+        train_results = run_train(params)
+        logging.info('Entering Testing')
+        params['model_file'] = train_results['model_file']
+        params['test_files'] = [f'{madar_folder}MADAR-Corpus-26-test.lines']
+        params['test_batch_size'] = 8
+        test_results, test_predictions = run_test(params)
 
-    record_predictions(params['model_folder'], test_predictions)
-    record_experiment([params, test_results, train_results],
-                      'experiments', '26 labels')
+        record_predictions(params['model_folder'], test_predictions)
+        record_experiment([params, test_results, train_results],
+                          'experiments', '26 labels 2')
 
 
 if __name__ == '__main__':

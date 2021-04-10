@@ -88,5 +88,64 @@ def main():
                           'experiments', '26 labels 2')
 
 
+def run_aggregate_experiment(params):
+    parser = argparse.ArgumentParser(
+        description="Run a hyperparameter search for finetuning a BERT models for Arabic DID."
+    )
+    parser.add_argument(
+        "logger_file",
+        type=str,
+        help="Logger file in cluster",
+    )
+
+    list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
+    params = {}
+
+    logging.info('Initializing training variables')
+    args = parser.parse_args()
+    params['logger_file'] = args.logger_file
+
+    params['bert'] = 'CAMeL-Lab/bert-base-camelbert-mix'
+    params['tokenizer'] = 'CAMeL-Lab/bert-base-camelbert-mix'
+    params['level'] = 'city'
+    params['train_batch_size'] = 32
+    params['val_batch_size'] = 32
+    params['max_seq_length'] = 32
+    params['dropout_prob'] = 0.1
+    params['hidden_size2'] = 512
+    params['num_classes'] = 26
+    params['epochs'] = 10
+    params['learning_rate'] = 1e-5
+    params['early_stop_patience'] = 2
+    params['metric'] = 'accuracy'
+    aggregated_folder = 'data_aggregated/'
+    params['train_files'] = [
+        f'{aggregated_folder}/']
+    params['val_files'] = [
+        f'{aggregated_folder}MADAR-Corpus-26-dev.lines', f'{aggregated_folder}MADAR-Corpus-6-dev.lines']
+    params['label_space_file'] = f'labels/madar_labels_{params["level"]}.txt'
+
+    for metric in list_metrics:
+        logging.info('Entering Training')
+        # datetime object containing current date and time
+        now = datetime.now()
+        dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
+        params['time'] = dt_string
+        params['metric'] = metric
+        params['model_folder'] = f'{dt_string}'
+        os.mkdir(params['model_folder'])
+        train_results = run_train(params)
+        logging.info('Entering Testing')
+        params['model_file'] = train_results['model_file']
+        params['test_files'] = [
+            f'{aggregated_folder}MADAR-Corpus-26-test.lines']
+        params['test_batch_size'] = 8
+        test_results, test_predictions = run_test(params)
+
+        record_predictions(params['model_folder'], test_predictions)
+        record_experiment([params, test_results, train_results],
+                          'experiments', '26 labels 2')
+
+
 if __name__ == '__main__':
     main()

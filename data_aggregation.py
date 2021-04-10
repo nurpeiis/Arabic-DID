@@ -43,15 +43,21 @@ def process_single_file(filename, dataset_name, df_city, df_country, df_region):
     return df_city, df_country, df_region
 
 
+def get_children(directory):
+
+    no_include_list = ['.DS_Store', 'misc']
+    children = [i for i in os.listdir(directory) if (
+        i in no_include_list) == False]
+    return children
+
+
 def aggregate_data(processed_folder, to_folder):
     """Aggregate data at each level of the hierarchy
     Args:
       processed_folder: folder containing all the processed data
       to_folder: folder to put aggregated dataframes
     """
-    no_include_list = ['.DS_Store', 'misc']
-    folders = [i for i in os.listdir(processed_folder) if (
-        i in no_include_list) == False]
+    folders = get_children(processed_folder)
     df_city_train = get_df()
     df_country_train = get_df()
     df_region_train = get_df()
@@ -62,8 +68,7 @@ def aggregate_data(processed_folder, to_folder):
     df_country_dev = get_df()
     df_region_dev = get_df()
     for folder in folders:
-        files = [i for i in os.listdir(
-            f'{processed_folder}/{folder}') if (i in no_include_list) == False]
+        files = get_children(f'{processed_folder}/{folder}')
         start_time = time.time()
         dataset_name = folder
         print(f'Starting {dataset_name}')
@@ -103,6 +108,11 @@ def aggregate_data(processed_folder, to_folder):
         f'Finished saving to files in {int(end_time - start_time)}s')
 
 
-def filter_collected_data(collected_data_folder):
+def check_labels(aggregated_data_folder):
+    df_dev = pd.read_csv(
+        f'{aggregated_data_folder}/city_dev.tsv', sep='\t', header=0)
+
+
+def filter_aggregated_data(aggregated_data_folder):
     # TODO: collect city, country, region that is in the label space
     pass

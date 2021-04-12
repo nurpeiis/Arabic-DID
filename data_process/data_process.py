@@ -3,9 +3,6 @@ import os
 import sklearn
 import pandas as pd
 import numpy as np
-from camel_tools.tokenizers import word as tokenizer
-from camel_tools.utils import transliterate as tsl
-from camel_tools.utils import charmap as chmap
 from standardize_label import standardize_labels
 
 

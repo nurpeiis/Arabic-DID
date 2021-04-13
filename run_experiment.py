@@ -7,7 +7,7 @@ from google_sheet_utils import get_sheet, get_all_records, rewrite_page, create_
 
 
 def record_experiment(list_dicts, sheet_title, page_title):
-    logging.info('Getting access to Google Sheet')
+    print('Getting access to Google Sheet')
     sheet = get_sheet(sheet_title)
     index_page = find_idx_page(sheet, page_title)
     if index_page == -1:
@@ -24,7 +24,7 @@ def record_experiment(list_dicts, sheet_title, page_title):
 
 
 def record_predictions(model_folder, test_predictions):
-    logging.info(f'Writing predictions into {model_folder}')
+    print(f'Writing predictions into {model_folder}')
     with open(f'{model_folder}/test_predictions.txt', 'w') as f:
         for p in test_predictions:
             f.write(f'{p}\n')
@@ -43,7 +43,7 @@ def main():
     list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
     params = {}
 
-    logging.info('Initializing training variables')
+    print('Initializing training variables')
     args = parser.parse_args()
     params['logger_file'] = args.logger_file
 
@@ -68,7 +68,7 @@ def main():
     params['label_space_file'] = f'labels/madar_labels_{params["level"]}.txt'
 
     for metric in list_metrics:
-        logging.info('Entering Training')
+        print('Entering Training')
         # datetime object containing current date and time
         now = datetime.now()
         dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
@@ -77,7 +77,7 @@ def main():
         params['model_folder'] = f'{dt_string}'
         os.mkdir(params['model_folder'])
         train_results = run_train(params)
-        logging.info('Entering Testing')
+        print('Entering Testing')
         params['model_file'] = train_results['model_file']
         params['test_files'] = [f'{madar_folder}MADAR-Corpus-26-test.lines']
         params['test_batch_size'] = 8
@@ -101,7 +101,7 @@ def run_aggregate_experiment(params):
     list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
     params = {}
 
-    logging.info('Initializing training variables')
+    print('Initializing training variables')
     args = parser.parse_args()
     params['logger_file'] = args.logger_file
 
@@ -126,7 +126,7 @@ def run_aggregate_experiment(params):
     params['label_space_file'] = f'labels/madar_labels_{params["level"]}.txt'
 
     for metric in list_metrics:
-        logging.info('Entering Training')
+        print('Entering Training')
         # datetime object containing current date and time
         now = datetime.now()
         dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
@@ -135,7 +135,7 @@ def run_aggregate_experiment(params):
         params['model_folder'] = f'{dt_string}'
         os.mkdir(params['model_folder'])
         train_results = run_train(params)
-        logging.info('Entering Testing')
+        print('Entering Testing')
         params['model_file'] = train_results['model_file']
         params['test_files'] = [
             f'{aggregated_folder}MADAR-Corpus-26-test.lines']
@@ -147,5 +147,56 @@ def run_aggregate_experiment(params):
                           'experiments', '26 labels 2')
 
 
+def run_level_experiment(level):
+    list_metrics = ['accuracy', 'loss', 'f1']
+    params = {}
+
+    print('Initializing training variables')
+
+    params['bert'] = 'CAMeL-Lab/bert-base-camelbert-mix'
+    params['tokenizer'] = 'CAMeL-Lab/bert-base-camelbert-mix'
+    params['level'] = 'level'
+    params['train_batch_size'] = 32
+    params['val_batch_size'] = 32
+    params['max_seq_length'] = 32
+    params['dropout_prob'] = 0.1
+    params['hidden_size2'] = 512
+    params['num_classes'] = 26
+    params['epochs'] = 10
+    params['learning_rate'] = 1e-5
+    params['early_stop_patience'] = 2
+    params['metric'] = 'accuracy'
+    aggregated_folder = 'data_aggregated'
+    params['train_files'] = [
+        f'{aggregated_folder}/{level}_train.tsv']
+    params['val_files'] = [
+        f'{aggregated_folder}/{level}_dev.tsv']
+    params['label_space_file'] = f'labels/{level}_label_id.txt'
+
+    for metric in list_metrics:
+        print('Entering Training')
+        # datetime object containing current date and time
+        now = datetime.now()
+        dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
+        params['time'] = dt_string
+        params['metric'] = metric
+        params['model_folder'] = f'{dt_string}'
+        os.mkdir(params['model_folder'])
+        train_results = run_train(params)
+        """
+        print('Entering Testing')
+        params['model_file'] = train_results['model_file']
+        params['test_files'] = [
+            f'{aggregated_folder}MADAR-Corpus-26-test.lines']
+        params['test_batch_size'] = 8
+        test_results, test_predictions = run_test(params)
+        """
+        #record_predictions(params['model_folder'], test_predictions)
+        record_experiment([params, train_results],
+                          'experiments', f'{level}')
+
+
 if __name__ == '__main__':
-    main()
+    run_level_experiment('region')
+    run_level_experiment('country')
+    # run_level_experiment('city')

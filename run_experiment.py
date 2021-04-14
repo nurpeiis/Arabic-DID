@@ -155,13 +155,20 @@ def run_level_experiment(level):
 
     params['bert'] = 'CAMeL-Lab/bert-base-camelbert-mix'
     params['tokenizer'] = 'CAMeL-Lab/bert-base-camelbert-mix'
-    params['level'] = 'level'
+    params['level'] = level
     params['train_batch_size'] = 32
     params['val_batch_size'] = 32
     params['max_seq_length'] = 32
     params['dropout_prob'] = 0.1
     params['hidden_size2'] = 512
-    params['num_classes'] = 26
+    if level == 'region':
+        params['num_classes'] = 6
+    elif level == 'country':
+        params['num_classes'] = 22
+    elif level == 'city':
+        params['num_classes'] = 110
+    else:
+        params['num_classes'] = 26
     params['epochs'] = 10
     params['learning_rate'] = 1e-5
     params['early_stop_patience'] = 2

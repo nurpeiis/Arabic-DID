@@ -4,3 +4,4 @@
 *__pycache__*
 *google_credentials.json*
 */data_aggregated/*
+*.ipynb_checkpoints/*

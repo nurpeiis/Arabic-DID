@@ -116,3 +116,6 @@ def check_labels(aggregated_data_folder):
 def filter_aggregated_data(aggregated_data_folder):
     # TODO: collect city, country, region that is in the label space
     pass
+
+
+aggregate_data('../hierarchical-did/data_processed_second', 'aggregated_data')

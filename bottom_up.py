@@ -3,10 +3,9 @@ import pandas as pd
 
 
 class BottomUp:
-
-    def __init__(self, table_labels_file='labels/label_space.tsv'):
+    def __init__(self, table_labels_file='labels/label_space_with_province.tsv'):
         """
-        table_labels_file : str = file name that stores hierarchical labels, which will be used to fill up at bottom up
+        table_labels_file: str = file name that stores hierarchical labels, which will be used to fill up at bottom up
         """
         self.labels = pd.read_csv(table_labels_file, delimiter='\t', header=0)
         self.cities = self.labels['dialect_city_id'].unique().tolist()

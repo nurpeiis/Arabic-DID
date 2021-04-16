@@ -46,3 +46,6 @@ conda activate  arabic-did
 
 1. Unbalanced data
 2. Not all cities available
+
+## Data Explanation:
+1. Dev has no zagazig and giza because `ldc_callhome_arabic_trans_1997_t19`  was splitted originally

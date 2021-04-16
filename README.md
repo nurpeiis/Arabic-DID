@@ -40,3 +40,9 @@ conda activate  arabic-did
 - Distance penalty: alpha = distance/max distance
   - soft margin svm
   - the further it goes away the more penalty, distance exponentially
+
+
+## Main Questions:
+
+1. Unbalanced data
+2. Not all cities available

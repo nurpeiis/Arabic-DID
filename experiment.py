@@ -1,4 +1,5 @@
 import torch
+import random
 import logging
 import data_utils
 import did_dataset
@@ -10,6 +11,10 @@ from torch.utils.data import DataLoader
 from transformers import AutoModel, AutoTokenizer, AdamW
 from classifier import Classifier
 
+# manual seed random number generator
+torch.manual_seed(999)
+random.seed(999)
+
 
 def run_train(params):
     """
@@ -20,7 +25,7 @@ def run_train(params):
       results: dictionary that contains all data
     """
     # Initialize variables
-    logging.info('Initializing variables')
+    print('Initializing variables')
     bert = AutoModel.from_pretrained(params['bert'])
     tokenizer = AutoTokenizer.from_pretrained(params['tokenizer'])
     level = params['level']
@@ -28,8 +33,7 @@ def run_train(params):
     val_batch_size = params['val_batch_size']
     max_seq_length = params['max_seq_length']
     dropout_prob = params['dropout_prob']
-    hidden_size1 = bert.config.hidden_size
-    hidden_size2 = params['hidden_size2']
+    hidden_size = bert.config.hidden_size
     num_classes = params['num_classes']
     epochs = params['epochs']
     learning_rate = params['learning_rate']
@@ -40,12 +44,11 @@ def run_train(params):
     label_space_file = params['label_space_file']
     model_folder = params['model_folder']
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = Classifier(bert, dropout_prob, hidden_size1,
-                       hidden_size2, num_classes)
+    model = Classifier(bert, dropout_prob, hidden_size, num_classes)
     model.to(device)
 
     # Get data
-    logging.info('Getting Data')
+    print('Getting Data')
     train_df = data_utils.get_df_from_files(train_files)
     val_df = data_utils.get_df_from_files(val_files)
 
@@ -77,11 +80,11 @@ def run_train(params):
     n_no_improvement = 0
     early_stop = False
     model_file = ''
-    logging.info('Starting training')
+    print('Starting training')
 
     # for each epoch
     for epoch in range(epochs):
-        logging.info(f'Epoch {epoch+1}/{epochs}')
+        print(f'Epoch {epoch+1}/{epochs}')
         # train model
         train_predictions, train_metrics = finetuning_utils.train(model, train_dataloader,
                                                                   cross_entropy, optimizer, device)
@@ -111,17 +114,17 @@ def run_train(params):
         train_predictions_list.append(train_predictions)
         valid_predictions_list.append(valid_predictions)
 
-        logging.info(
+        print(
             f'Training Metrics: {train_metrics}')
-        logging.info(
+        print(
             f'Validation Metrics: {valid_metrics}')
         if n_no_improvement > early_stop_patience:
-            logging.info(f'Early stopping at epoch {epoch + 1}')
+            print(f'Early stopping at epoch {epoch + 1}')
             early_stop = True
             break
 
     # logging.info best metrics
-    logging.info(
+    print(
         f'Best validation epoch is {best_valid_epoch + 1} with metrics: {valid_metrics_list[epoch]}\nModel can be found here saved_weights_early_stop_{best_valid_epoch}_{metric}.pt')
 
     results = {}
@@ -150,20 +153,18 @@ def run_test(params):
     test_batch_size = params['test_batch_size']
     max_seq_length = params['max_seq_length']
     dropout_prob = params['dropout_prob']
-    hidden_size1 = bert.config.hidden_size
-    hidden_size2 = params['hidden_size2']
+    hidden_size = bert.config.hidden_size
     num_classes = params['num_classes']
     test_files = params['test_files']
     label_space_file = params['label_space_file']
     model_file = params['model_file']
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = Classifier(bert, dropout_prob, hidden_size1,
-                       hidden_size2, num_classes)
+    model = Classifier(bert, dropout_prob, hidden_size, num_classes)
     model.to(device)
     model.load_state_dict(torch.load(model_file))
 
     # Get Data
-    logging.info('Getting Test Data')
+    print('Getting Test Data')
     test_df = data_utils.get_df_from_files(test_files)
 
     test_data = did_dataset.DIDDataset(
@@ -174,11 +175,11 @@ def run_test(params):
 
     # Get cross entropy
     cross_entropy = nn.CrossEntropyLoss()
-    logging.info('Starting Test')
+    print('Starting Test')
 
     test_predictions, test_metrics = finetuning_utils.test(model, test_dataloader,
                                                            cross_entropy, device)
-    logging.info(f'Test Metrics: {test_metrics}')
+    print(f'Test Metrics: {test_metrics}')
     results = {}
     for k in test_metrics.keys():
         results[f'test_{k}'] = test_metrics[k]

@@ -30,22 +30,12 @@ def record_predictions(model_folder, test_predictions):
             f.write(f'{p}\n')
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Run a hyperparameter search for finetuning a BERT models for Arabic DID."
-    )
-    parser.add_argument(
-        "logger_file",
-        type=str,
-        help="Logger file in cluster",
-    )
+def run_madar_experiment():
 
     list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
     params = {}
 
     print('Initializing training variables')
-    args = parser.parse_args()
-    params['logger_file'] = args.logger_file
 
     params['bert'] = 'CAMeL-Lab/bert-base-camelbert-mix'
     params['tokenizer'] = 'CAMeL-Lab/bert-base-camelbert-mix'
@@ -54,7 +44,6 @@ def main():
     params['val_batch_size'] = 32
     params['max_seq_length'] = 32
     params['dropout_prob'] = 0.1
-    params['hidden_size2'] = 512
     params['num_classes'] = 26
     params['epochs'] = 10
     params['learning_rate'] = 1e-5
@@ -64,7 +53,7 @@ def main():
     params['train_files'] = [
         f'{madar_folder}MADAR-Corpus-26-train.lines', f'{madar_folder}MADAR-Corpus-6-train.lines']
     params['val_files'] = [
-        f'{madar_folder}MADAR-Corpus-26-dev.lines', f'{madar_folder}MADAR-Corpus-6-dev.lines']
+        f'{madar_folder}MADAR-Corpus-26-dev.lines']
     params['label_space_file'] = f'labels/madar_labels_{params["level"]}.txt'
 
     for metric in list_metrics:
@@ -72,6 +61,7 @@ def main():
         # datetime object containing current date and time
         now = datetime.now()
         dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
+        params['an experiment name'] = f'{metric}; train-26,6; dev-26; test-26'
         params['time'] = dt_string
         params['metric'] = metric
         params['model_folder'] = f'{dt_string}'
@@ -85,66 +75,7 @@ def main():
 
         record_predictions(params['model_folder'], test_predictions)
         record_experiment([params, test_results, train_results],
-                          'experiments', '26 labels 2')
-
-
-def run_aggregate_experiment(params):
-    parser = argparse.ArgumentParser(
-        description="Run a hyperparameter search for finetuning a BERT models for Arabic DID."
-    )
-    parser.add_argument(
-        "logger_file",
-        type=str,
-        help="Logger file in cluster",
-    )
-
-    list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
-    params = {}
-
-    print('Initializing training variables')
-    args = parser.parse_args()
-    params['logger_file'] = args.logger_file
-
-    params['bert'] = 'CAMeL-Lab/bert-base-camelbert-mix'
-    params['tokenizer'] = 'CAMeL-Lab/bert-base-camelbert-mix'
-    params['level'] = 'city'
-    params['train_batch_size'] = 32
-    params['val_batch_size'] = 32
-    params['max_seq_length'] = 32
-    params['dropout_prob'] = 0.1
-    params['hidden_size2'] = 512
-    params['num_classes'] = 26
-    params['epochs'] = 10
-    params['learning_rate'] = 1e-5
-    params['early_stop_patience'] = 2
-    params['metric'] = 'accuracy'
-    aggregated_folder = 'data_aggregated/'
-    params['train_files'] = [
-        f'{aggregated_folder}/']
-    params['val_files'] = [
-        f'{aggregated_folder}MADAR-Corpus-26-dev.lines', f'{aggregated_folder}MADAR-Corpus-6-dev.lines']
-    params['label_space_file'] = f'labels/madar_labels_{params["level"]}.txt'
-
-    for metric in list_metrics:
-        print('Entering Training')
-        # datetime object containing current date and time
-        now = datetime.now()
-        dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
-        params['time'] = dt_string
-        params['metric'] = metric
-        params['model_folder'] = f'{dt_string}'
-        os.mkdir(params['model_folder'])
-        train_results = run_train(params)
-        print('Entering Testing')
-        params['model_file'] = train_results['model_file']
-        params['test_files'] = [
-            f'{aggregated_folder}MADAR-Corpus-26-test.lines']
-        params['test_batch_size'] = 8
-        test_results, test_predictions = run_test(params)
-
-        record_predictions(params['model_folder'], test_predictions)
-        record_experiment([params, test_results, train_results],
-                          'experiments', '26 labels 2')
+                          'experiments', 'madar')
 
 
 def run_level_experiment(level):
@@ -160,7 +91,6 @@ def run_level_experiment(level):
     params['val_batch_size'] = 32
     params['max_seq_length'] = 32
     params['dropout_prob'] = 0.1
-    params['hidden_size2'] = 512
     if level == 'region':
         params['num_classes'] = 6
     elif level == 'country':
@@ -190,20 +120,10 @@ def run_level_experiment(level):
         params['model_folder'] = f'{dt_string}'
         os.mkdir(params['model_folder'])
         train_results = run_train(params)
-        """
-        print('Entering Testing')
-        params['model_file'] = train_results['model_file']
-        params['test_files'] = [
-            f'{aggregated_folder}MADAR-Corpus-26-test.lines']
-        params['test_batch_size'] = 8
-        test_results, test_predictions = run_test(params)
-        """
         #record_predictions(params['model_folder'], test_predictions)
         record_experiment([params, train_results],
                           'experiments', f'{level}')
 
 
 if __name__ == '__main__':
-    run_level_experiment('region')
-    run_level_experiment('country')
-    # run_level_experiment('city')
+    run_madar_experiment()

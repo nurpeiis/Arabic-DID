@@ -1,11 +1,25 @@
-import copy
-import time
 import torch
+import random
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score
-from transformers import AutoModel
+
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+
+def get_labels(label_space_file):
+
+    with open(label_space_file, 'r') as f:
+        lines = f.readlines()
+        labels = [(line.split(',')[0], line.split(',')[1].replace('\n', ''))
+                  for line in lines]
+
+    return labels
 
 
 def compute_metrics(eval_pred):
@@ -34,10 +48,6 @@ def metrics(preds, labels, total_metrics):
     for m in list_metrics:
         total_metrics[m] += cur_metrics[m]
     return cur_metrics
-
-
-def cost_function(cost_dict):
-    return cost_dict['eval_loss']
 
 
 def train(model, train_dataloader, cross_entropy, optimizer, device):
@@ -204,11 +214,3 @@ def test(model, test_dataloader, cross_entropy, device):
     total_preds = np.concatenate(total_preds, axis=0)
 
     return total_preds, avg_metrics
-
-
-def model_init():
-    """Returns an initialized model for use in a Hugging Face Trainer."""
-
-    model = AutoModel.from_pretrained(
-        'CAMeL-Lab/bert-base-camelbert-mix')
-    return model

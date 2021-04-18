@@ -1,114 +1,113 @@
-msa,0
-abu_dhabi,1
-dubai,2
-fujairah,3
-ras_al_khaimah,4
-umm_al_quwain,5
-hawalli,6
-jahra,7
-nizwa,8
-sohar,9
-sur,10
-salalah,11
-khasab,12
-muscat,13
-doha,14
-al_rayyan,15
-al_madinah,16
-abha,17
-hail,18
-jizan,19
-najran,20
-riyadh,21
-tabuk,22
-djibouti,23
-mogadishu,24
-aden,25
-al_hudaydah,26
-dhamar,27
-ibb,28
-sanaa,29
-ramadi,30
-baghdad,31
-basra,32
-duhok,33
-erbil,34
-karbala,35
-amarah,36
-samawah,37
-najaf,38
-mosul,39
-sulaymaniyah,40
-kut,41
-amman,42
-aqaba,43
-salt,44
-zarqa,45
-halba,46
-beirut,47
-tripoli,48
-sidon,49
-gaza,50
-jerusalem,51
-al_suwayda,52
-aleppo,53
-damascus,54
-homs,55
-latakia,56
-algiers,57
-annaba,58
-bechar,59
-bordj_bou_arreridj,60
-bouira,61
-jijel,62
-khenchela,63
-oran,64
-ouargla,65
-benghazi,66
-tobruk,67
-bayda,68
-misrata,69
-fes,70
-marrakesh,71
-oujda,72
-rabat,73
-agadir,74
-nouakchott,75
-ariana,76
-kairouan,77
-mahdia,78
-sfax,79
-sousse,80
-tunis,81
-manama,82
-alexandria,83
-aswan,84
-asyut,85
-damanhur,86
-beni_suef,87
-cairo,88
-mansoura,89
-faiyum,90
-tanta,91
-giza,92
-ismailia,93
-kafr_el_sheikh,94
-luxor,95
-minya,96
-shibin_el_kom,97
-el_arish,98
-port_said,99
-qena,100
-hurghada,101
-zagazig,102
-girga,103
-el_tor,104
-suez,105
-khartoum,106
-buraidah,107
-dammam,108
-jeddah,109
-makkah,110
-kuwait_city,111
-meknes,112
-tangier,113
+msa msa msa,0
+abu_dhabi ae gulf,1
+dubai ae gulf,2
+fujairah ae gulf,3
+ras_al_khaimah ae gulf,4
+umm_al_quwain ae gulf,5
+manama bh gulf,6
+hawalli kw gulf,7
+jahra kw gulf,8
+nizwa om gulf,9
+sohar om gulf,10
+sur om gulf,11
+salalah om gulf,12
+khasab om gulf,13
+muscat om gulf,14
+doha qa gulf,15
+al_rayyan qa gulf,16
+al_madinah sa gulf,17
+abha sa gulf,18
+hail sa gulf,19
+jizan sa gulf,20
+najran sa gulf,21
+riyadh sa gulf,22
+tabuk sa gulf,23
+buraidah sa gulf,24
+dammam sa gulf,25
+jeddah sa gulf,26
+ramadi iq gulf,27
+baghdad iq gulf,28
+basra iq gulf,29
+duhok iq gulf,30
+erbil iq gulf,31
+karbala iq gulf,32
+amarah iq gulf,33
+samawah iq gulf,34
+najaf iq gulf,35
+mosul iq gulf,36
+sulaymaniyah iq gulf,37
+kut iq gulf,38
+djibouti dj gulf_aden,39
+mogadishu so gulf_aden,40
+aden ye gulf_aden,41
+al_hudaydah ye gulf_aden,42
+dhamar ye gulf_aden,43
+ibb ye gulf_aden,44
+sanaa ye gulf_aden,45
+amman jo levant,46
+aqaba jo levant,47
+salt jo levant,48
+zarqa jo levant,49
+halba lb levant,50
+beirut lb levant,51
+tripoli lb levant,52
+sidon lb levant,53
+gaza ps levant,54
+jerusalem ps levant,55
+al_suwayda sy levant,56
+aleppo sy levant,57
+damascus sy levant,58
+homs sy levant,59
+latakia sy levant,60
+algiers dz maghreb,61
+annaba dz maghreb,62
+bechar dz maghreb,63
+bordj_bou_arreridj dz maghreb,64
+bouira dz maghreb,65
+jijel dz maghreb,66
+khenchela dz maghreb,67
+oran dz maghreb,68
+ouargla dz maghreb,69
+benghazi ly maghreb,70
+tobruk ly maghreb,71
+bayda ly maghreb,72
+misrata ly maghreb,73
+tripoli ly maghreb,74
+fes ma maghreb,75
+marrakesh ma maghreb,76
+oujda ma maghreb,77
+rabat ma maghreb,78
+agadir ma maghreb,79
+meknes ma maghreb,80
+tangier ma maghreb,81
+nouakchott mr maghreb,82
+ariana tn maghreb,83
+kairouan tn maghreb,84
+mahdia tn maghreb,85
+sfax tn maghreb,86
+sousse tn maghreb,87
+tunis tn maghreb,88
+alexandria eg nile_basin,89
+aswan eg nile_basin,90
+asyut eg nile_basin,91
+damanhur eg nile_basin,92
+beni_suef eg nile_basin,93
+cairo eg nile_basin,94
+mansoura eg nile_basin,95
+faiyum eg nile_basin,96
+tanta eg nile_basin,97
+giza eg nile_basin,98
+ismailia eg nile_basin,99
+kafr_el_sheikh eg nile_basin,100
+luxor eg nile_basin,101
+minya eg nile_basin,102
+shibin_el_kom eg nile_basin,103
+el_arish eg nile_basin,104
+port_said eg nile_basin,105
+qena eg nile_basin,106
+hurghada eg nile_basin,107
+zagazig eg nile_basin,108
+girga eg nile_basin,109
+el_tor eg nile_basin,110
+suez eg nile_basin,111
+khartoum sd nile_basin,112

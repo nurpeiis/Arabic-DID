@@ -1,22 +1,22 @@
-msa,0
-ae,1
-kw,2
-om,3
-qa,4
-sa,5
-dj,6
-so,7
-ye,8
-iq,9
-jo,10
-lb,11
-ps,12
-sy,13
-dz,14
-ly,15
-ma,16
-mr,17
-tn,18
-bh,19
-eg,20
-sd,21
+msa msa,0
+ae gulf,1
+bh gulf,2
+kw gulf,3
+om gulf,4
+qa gulf,5
+sa gulf,6
+iq gulf,7
+dj gulf_aden,8
+so gulf_aden,9
+ye gulf_aden,10
+jo levant,11
+lb levant,12
+ps levant,13
+sy levant,14
+dz maghreb,15
+ly maghreb,16
+ma maghreb,17
+mr maghreb,18
+tn maghreb,19
+eg nile_basin,20
+sd nile_basin,21

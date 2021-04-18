@@ -2,6 +2,7 @@ import os
 import logging
 import argparse
 from datetime import datetime
+from finetuning_utils import set_seed
 from experiment import run_train, run_test
 from google_sheet_utils import get_sheet, get_all_records, rewrite_page, create_page, find_idx_page
 
@@ -123,6 +124,11 @@ def run_level_experiment(level):
         #record_predictions(params['model_folder'], test_predictions)
         record_experiment([params, train_results],
                           'experiments', f'{level}')
+
+
+def run_camelbert_experiment(params):
+    params['seed'] = 1234
+    set_seed(params[seed])
 
 
 if __name__ == '__main__':

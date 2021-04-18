@@ -46,6 +46,19 @@ def get_df_from_files(files):
     return df
 
 
+def process_text(self, text):
+    """
+    processes the input text by removing diacritics
+    Args:
+        input text
+    Returns:
+        processed text
+    """
+
+    text = dediac.dediac_ar(text)
+    return text
+
+
 def extract_labels(dataset, level, label_space_file=''):
     """Converts labels into numerical labels.
 

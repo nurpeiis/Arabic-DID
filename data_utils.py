@@ -1,5 +1,19 @@
 import torch
 import pandas as pd
+import camel_tools.utils.dediac as dediac
+
+
+def process_text(self, text):
+    """
+    processes the input text by removing diacritics
+    Args:
+        input text
+    Returns:
+        processed text
+    """
+
+    text = dediac.dediac_ar(text)
+    return text
 
 
 def encode_data(dataset, tokenizer, max_seq_length=128):
@@ -22,16 +36,18 @@ def encode_data(dataset, tokenizer, max_seq_length=128):
     attention_mask: A PyTorch.Tensor (with dimensions [len(dataset), max_seq_length])
       containing attention masks for the data.
   """
-
+    sentences = dataset['original_sentence'].tolist()
+    sentences = [process_text(sentence) for sentence in sentences]
     data = tokenizer(
-        dataset['original_sentence'].tolist(),
+        sentences,
         max_length=max_seq_length,
         padding='max_length',
         truncation=True
     )
     input_ids = torch.tensor(data['input_ids'], dtype=torch.long)
     attention_mask = torch.tensor(data['attention_mask'], dtype=torch.long)
-    return input_ids, attention_mask
+    token_type_ids = torch.tensor(data['token_type_ids'], dtype=torch.long)
+    return input_ids, attention_mask, token_type_ids
 
 
 def get_df_from_files(files):
@@ -46,17 +62,19 @@ def get_df_from_files(files):
     return df
 
 
-def process_text(self, text):
-    """
-    processes the input text by removing diacritics
-    Args:
-        input text
-    Returns:
-        processed text
-    """
+def get_label_space(label_space_file):
 
-    text = dediac.dediac_ar(text)
-    return text
+    with open(label_space_file, 'r') as f:
+        lines = f.readlines()
+        labels = [(line.split(',')[0], int(line.split(',')[1][:-1]))
+                  for line in lines]
+    label2id = {}
+    id2label = {}
+    for label in labels:
+        label2id[label[0]] = label[1]
+        id2label[label[1]] = label[0]
+
+    return labels, label2id, id2label
 
 
 def extract_labels(dataset, level, label_space_file=''):
@@ -69,20 +87,25 @@ def extract_labels(dataset, level, label_space_file=''):
     Returns:
       labels: A list of integers corresponding to the labels for each example
     """
+    if level == 'city':
+        labels = dataset[['dialect_city_id', 'dialect_country_id',
+                          'dialect_region_id']].values.tolist()
+    elif level == 'country':
+        labels = dataset[['dialect_country_id',
+                          'dialect_region_id']].values.tolist()
+    elif level == 'region':
+        labels = dataset[['dialect_region_id']].values.tolist()
 
-    labels = dataset[f'dialect_{level}_id'].tolist()
+    labels = [' '.join(label) for label in labels]
     dictionary_label_to_index = dict()
     if label_space_file == '':
         label_space_file = f'labels/{level}_label_id.txt'
-    with open(label_space_file, 'r') as f:
-        lines = f.readlines()
-        for l in lines:
-            dictionary_label_to_index[l.split(',')[0]] = int(
-                l.split(',')[1][:-1])
+
+    _, label2id, id2label = get_label_space(label_space_file)
 
     for i in range(len(labels)):
-        if labels[i] in dictionary_label_to_index:
-            labels[i] = dictionary_label_to_index[labels[i]]
+        if labels[i] in label2id:
+            labels[i] = label2id[labels[i]]
         else:
             labels[i] = 0
     return labels

@@ -97,7 +97,7 @@ def run_level_experiment(level):
     elif level == 'country':
         params['num_classes'] = 22
     elif level == 'city':
-        params['num_classes'] = 110
+        params['num_classes'] = 113
     else:
         params['num_classes'] = 26
     params['epochs'] = 10

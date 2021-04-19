@@ -12,16 +12,6 @@ def set_seed(seed):
     torch.manual_seed(seed)
 
 
-def get_labels(label_space_file):
-
-    with open(label_space_file, 'r') as f:
-        lines = f.readlines()
-        labels = [(line.split(',')[0], line.split(',')[1].replace('\n', ''))
-                  for line in lines]
-
-    return labels
-
-
 def compute_metrics(eval_pred):
     """Computes accuracy, f1, precision, and recall from a 
     transformers.trainer_utils.EvalPrediction object.

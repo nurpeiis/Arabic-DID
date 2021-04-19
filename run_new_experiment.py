@@ -34,6 +34,7 @@ import json
 import logging
 import os
 import random
+import data_utils
 
 import numpy as np
 import torch
@@ -59,6 +60,7 @@ from utils.metrics import compute_metrics, write_predictions
 from utils.data_utils import output_modes
 from utils.data_utils import processors
 from utils.data_utils import convert_examples_to_features
+from data_new_utils import DIDProcesser
 from finetuning_utils import get_labels, set_seed
 
 logger = logging.getLogger(__name__)
@@ -349,18 +351,16 @@ def evaluate(args, model, tokenizer, mode='', prefix=''):
     return results
 
 
-def load_and_cache_examples(args, task, tokenizer, mode=''):
+def load_and_cache_examples(args, files, label_list, level, tokenizer, mode):
 
-    processor = processors[task]()
-    output_mode = output_modes[task]
+    processor = DIDProcesser()
     # Load data features from cache or dataset file
     cached_features_file = os.path.join(
         args.data_dir,
-        'cached_{}_{}_{}_{}'.format(
+        'cached_{}_{}_{}'.format(
             mode,
             list(filter(None, args.model_name_or_path.split('/'))).pop(),
-            str(args.max_seq_length),
-            str(task),
+            str(args.max_seq_length)
         ),
     )
     if os.path.exists(cached_features_file) and not args.overwrite_cache:
@@ -369,20 +369,14 @@ def load_and_cache_examples(args, task, tokenizer, mode=''):
         features = torch.load(cached_features_file)
     else:
         logger.info('Creating features from dataset file at %s', args.data_dir)
-        label_list = processor.get_labels()
-        if mode == 'train':
-            examples = processor.get_train_examples(args.data_dir)
-        elif mode == 'dev':
-            examples = processor.get_dev_examples(args.data_dir)
-        elif mode == 'test':
-            examples = processor.get_test_examples(args.data_dir)
+
+        examples = processor.get_examples(files, level, mode)
 
         features = convert_examples_to_features(
             examples,
             tokenizer,
             label_list=label_list,
             max_length=args.max_seq_length,
-            output_mode=output_mode,
             pad_on_left=bool(args.model_type in ['xlnet']),
             pad_token=tokenizer.convert_tokens_to_ids(
                 [tokenizer.pad_token])[0],
@@ -471,6 +465,12 @@ def main():
         help='Label space file',
     )
     parser.add_argument(
+        '--level',
+        default='',
+        type=str,
+        help='Level of dialect: city, country or region',
+    )
+    parser.add_argument(
         '--max_seq_length',
         default=128,
         type=int,
@@ -518,7 +518,7 @@ def main():
     )
     parser.add_argument(
         '--learning_rate',
-        default=5e-5,
+        default=3e-5,
         type=float,
         help='The initial learning rate for Adam.'
     )
@@ -542,7 +542,7 @@ def main():
     )
     parser.add_argument(
         '--num_train_epochs',
-        default=3.0,
+        default=10,
         type=float,
         help='Total number of training epochs to perform.',
     )
@@ -627,17 +627,18 @@ def main():
 
     # Set seed
     set_seed(args)
-    label_list = get_labels(args.label_space_file)
-
-    args.output_mode = output_modes[args.task_name]
+    label_list, label2id, id2label = get_labels(args.label_space_file)
+    args.train_files = []
+    args.dev_files = []
+    args.test_files = []
     num_labels = len(label_list)
 
     config = AutoConfig.from_pretrained(
         args.config_name if args.config_name else args.model_name_or_path,
         num_labels=num_labels,
-        label2id={label: i for i, label in enumerate(label_list)},
-        id2label={str(i): label for i, label in enumerate(label_list)},
-        finetuning_task=args.task_name,
+        label2id=label2id,
+        id2label=id2label,
+        finetuning_task='arabic_did',
         cache_dir=args.cache_dir if args.cache_dir else None,
     )
     tokenizer = AutoTokenizer.from_pretrained(
@@ -657,7 +658,7 @@ def main():
 
     # Training
     if args.do_train:
-        train_dataset = load_and_cache_examples(args, args.task_name,
+        train_dataset = load_and_cache_examples(args, args.train_files, label_list,
                                                 tokenizer, mode='train')
         global_step, tr_loss = train(args, train_dataset, model, tokenizer)
         logger.info(' global_step = %s, average loss = %s',

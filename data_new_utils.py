@@ -29,6 +29,7 @@ Text classification tasks utils
 import logging
 import os
 import re
+import data_utils
 import camel_tools.utils.normalize as normalize
 import camel_tools.utils.dediac as dediac
 from transformers.data.processors.utils import (
@@ -44,7 +45,6 @@ def convert_examples_to_features(examples, tokenizer,
                                  max_length=512,
                                  task=None,
                                  label_list=None,
-                                 output_mode=None,
                                  pad_on_left=False,
                                  pad_token=0,
                                  pad_token_segment_id=0,
@@ -59,8 +59,6 @@ def convert_examples_to_features(examples, tokenizer,
         label_list: List of labels.
                     Can be obtained from the processor using the
                     ``processor.get_labels()`` method
-        output_mode: String indicating the output mode.
-                     Either ``regression`` or ``classification``
         pad_on_left: If set to ``True``,
                      the examples will be padded on the left rather
                      than on the right (default)
@@ -78,17 +76,6 @@ def convert_examples_to_features(examples, tokenizer,
         list of task-specific ``InputFeatures`` which can be fed to the model.
     """
 
-    if task is not None:
-        processor = processors[task]()
-        if label_list is None:
-            label_list = processor.get_labels()
-            logger.info("Using label list %s for task %s" %
-                        (label_list, task))
-        if output_mode is None:
-            output_mode = output_modes[task]
-            logger.info("Using output mode %s for task %s" %
-                        (output_mode, task))
-
     label_map = {label: i for i, label in enumerate(label_list)}
     logger.info('**LABEL MAP**')
     logger.info(label_map)
@@ -99,7 +86,6 @@ def convert_examples_to_features(examples, tokenizer,
 
         inputs = tokenizer.encode_plus(
             example.text_a,
-            example.text_b,
             add_special_tokens=True,
             max_length=max_length,
             truncation=True
@@ -137,17 +123,8 @@ def convert_examples_to_features(examples, tokenizer,
             "Error with input length {} vs {}".format(len(token_type_ids),
                                                       max_length))
 
-        if output_mode == "classification":
-            # DUMMY GOLD LABEL FOR NADI TEST
-            # BECAUSE WE DON'T HAVE THE GOLD LABELS
-            # AND WE RUN THE EVAL ON TEST USING
-            # CODALAB
-            label = (label_map[example.label] if example.label is not None
-                     else label_map['Syria'])
-        elif output_mode == "regression":
-            label = float(example.label)
-        else:
-            raise KeyError(output_mode)
+        label = (label_map[example.label] if example.label is not None
+                 else label_map['ms'])
 
         if ex_index < 5:
             logger.info("*** Example ***")
@@ -170,9 +147,7 @@ def convert_examples_to_features(examples, tokenizer,
     return features
 
 
-class ArabicDIDProcessor_MADAR_26(DataProcessor):
-    """Processor for Arabic Dialect ID Classification
-       on MADAR Corpus 26"""
+class DIDProcesser(DataProcessor):
 
     def get_example_from_tensor_dict(self, tensor_dict):
         """See base class."""
@@ -180,44 +155,35 @@ class ArabicDIDProcessor_MADAR_26(DataProcessor):
                             tensor_dict['text'].numpy().decode('utf-8'),
                             str(tensor_dict['label'].numpy()))
 
-    def _create_examples(self, lines, set_type):
+    def _create_examples(self, df, level, set_type):
         """Creates examples for the training and dev sets."""
         examples = []
-        for (i, line) in enumerate(lines):
+        if level == 'city':
+            labels = df[['dialect_city_id', 'dialect_country_id',
+                         'dialect_region_id']].values.tolist()
+        elif level == 'country':
+            labels = df[['dialect_country_id',
+                         'dialect_region_id']].values.tolist()
+        elif level == 'region':
+            labels = df[['dialect_region_id']].values.tolist()
+
+        labels = [' '.join(label) for label in labels]
+        sentences = df['original_sentence'].tolist()
+
+        for (i, sentence) in enumerate(sentences):
             guid = "%s-%s" % (set_type, i)
-            text_a = self.process_text(line[0])
-            label = line[1]
+            text_a = self.process_text(sentence)
+            label = labels[i]
             examples.append(InputExample(
                 guid=guid, text_a=text_a, label=label))
 
         return examples
 
-    def get_train_examples(self, data_dir):
+    def get_examples(self, files, level, set_type):
         """See base class."""
-        logger.info("LOOKING AT {}".format(os.path.join(data_dir,
-                                           "MADAR-Corpus-26-train.tsv")))
-        return self._create_examples(
-            self._read_tsv(os.path.join(
-                data_dir, "MADAR-Corpus-26-train.tsv")),
-            "train")
-
-    def get_dev_examples(self, data_dir):
-        """See base class."""
-        logger.info("LOOKING AT {}".format(os.path.join(data_dir,
-                                           "MADAR-Corpus-26-dev.tsv")))
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "MADAR-Corpus-26-dev.tsv")),
-            "dev")
-
-    def get_test_examples(self, data_dir):
-        logger.info("LOOKING AT {}".format(os.path.join(data_dir,
-                                           "MADAR-Corpus-26-test.tsv")))
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "MADAR-Corpus-26-test.tsv")),
-            "test")
-
-    def get_labels(self):
-        return MADAR_26_LABELS
+        logger.info(f'Looking at files: {files}')
+        df = data_utils.get_df_from_files(files)
+        return self._create_examples(df, level, set_type)
 
     def process_text(self, text):
         """
@@ -231,10 +197,6 @@ class ArabicDIDProcessor_MADAR_26(DataProcessor):
         text = dediac.dediac_ar(text)
         return text
 
-
-processors = {
-    "arabic_did_madar_26": ArabicDIDProcessor_MADAR_26
-}
 
 output_modes = {
     "arabic_did_madar_26": "classification"

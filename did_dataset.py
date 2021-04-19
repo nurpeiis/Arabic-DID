@@ -35,4 +35,4 @@ class DIDDataset(Dataset):
             label for the i-th example, with the values being numeric tensors
             and the keys being 'input_ids', 'attention_mask', and 'labels'.
         """
-        return {'input_ids': self.encoded_data[0][i], 'attention_mask':  self.encoded_data[1][i], 'labels': torch.tensor(self.label_list[i], dtype=torch.long)}
+        return {'input_ids': self.encoded_data[0][i], 'attention_mask':  self.encoded_data[1][i], 'token_type_ids': self.encoded_data[2][i], 'labels': torch.tensor(self.label_list[i], dtype=torch.long)}

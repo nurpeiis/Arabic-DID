@@ -3,7 +3,7 @@ import pandas as pd
 import camel_tools.utils.dediac as dediac
 
 
-def process_text(self, text):
+def process_text(text):
     """
     processes the input text by removing diacritics
     Args:

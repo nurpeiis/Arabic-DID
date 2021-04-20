@@ -1,4 +1,6 @@
 from classifier import Classifier
+import os
+import json
 import torch
 import random
 import logging
@@ -28,7 +30,6 @@ def run_train(params):
     """
     # Initialize variables
     print('Initializing variables')
-    bert = AutoModel.from_pretrained(params['bert'])
     tokenizer = AutoTokenizer.from_pretrained(params['tokenizer'])
     config = AutoConfig.from_pretrained(
         params['bert'],
@@ -52,12 +53,13 @@ def run_train(params):
     epochs = params['epochs']
     learning_rate = params['learning_rate']
     adam_epsilon = params['adam_epsilon']
-    early_stop_patience = params['early_stop_patience']
     metric = params['metric']
     train_files = params['train_files']
     val_files = params['val_files']
     label_space_file = params['label_space_file']
     model_folder = params['model_folder']
+    max_grad_norm = params['max_grad_norm']
+    save_steps = params['save_steps']
     weight_decay = params['weight_decay']
     warmup_steps = params['warmup_steps']
     gradient_accumulation_steps = params['gradient_accumulation_steps']
@@ -111,171 +113,100 @@ def run_train(params):
 
     global_step = 0
     epochs_trained = 0
-    steps_trained_in_current_epoch = 0
-    tr_loss, logging_loss = 0.0, 0.0
+    tr_loss = 0.0
     model.zero_grad()
     train_iterator = trange(epochs_trained,
                             epochs, desc='Epoch')
     finetuning_utils.set_seed(seed)  # Added here for reproductibility
+    list_avg_train_metrics = []
+    checkpoints = []
+    print('Entering Training')
     for _ in train_iterator:
+        list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
+        total_metrics = {}
+        for m in list_metrics:
+            total_metrics[m] = 0
         epoch_iterator = tqdm(train_dataloader, desc='Iteration')
         for step, batch in enumerate(epoch_iterator):
-
-            # Skip past any already trained steps if resuming training
-            if steps_trained_in_current_epoch > 0:
-                steps_trained_in_current_epoch -= 1
-                continue
-
             model.train()
-            batch = tuple(t.to(device) for t in batch)
-
+            batch['input_ids'] = batch['input_ids'].to(device)
+            batch['attention_mask'] = batch['attention_mask'].to(device)
+            batch['token_type_ids'] = batch['token_type_ids'].to(device)
+            batch['labels'] = batch['labels'].to(device)
+            labels = batch['labels']
             outputs = model(**batch)
             # model outputs are always tuple in transformers (see doc)
-            loss = outputs[0]
-
-            if gradient_accumulation_steps > 1:
-                loss = loss / gradient_accumulation_steps
+            loss, logits = outputs[:2]
 
             loss.backward()
 
             tr_loss += loss.item()
-            if (step + 1) % gradient_accumulation_steps == 0:
-                torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                               max_grad_norm)
+            total_metrics['loss'] += loss.item()
+            preds_a = logits.detach().cpu().numpy()
+            label_ids = labels.to('cpu').numpy()
 
-                optimizer.step()
-                scheduler.step()  # Update learning rate schedule
-                model.zero_grad()
-                global_step += 1
+            # Calculate the accuracy for this batch of test sentences.
+            tmp_metrics = finetuning_utils.metrics(
+                preds_a, label_ids,  total_metrics)
+            #print(f'Tmp metrics {tmp_metrics}%')
 
-                if (args.local_rank in [-1, 0] and args.logging_steps > 0 and
-                        global_step % args.logging_steps == 0):
-                    logs = {}
-                    # Only evaluate when single GPU otherwise metrics may not
-                    # average well
-                    if (
-                        args.local_rank == -1 and args.evaluate_during_training
-                    ):
-                        results = evaluate(args, model, tokenizer)
-                        for key, value in results.items():
-                            eval_key = 'eval_{}'.format(key)
-                            logs[eval_key] = value
+            torch.nn.utils.clip_grad_norm_(model.parameters(),
+                                           max_grad_norm)
+            optimizer.step()
+            scheduler.step()  # Update learning rate schedule
+            model.zero_grad()
+            global_step += 1
 
-                    loss_scalar = (tr_loss - logging_loss) / args.logging_steps
-                    learning_rate_scalar = scheduler.get_lr()[0]
-                    logs['learning_rate'] = learning_rate_scalar
-                    logs['loss'] = loss_scalar
-                    logging_loss = tr_loss
+            if (save_steps > 0 and
+                    global_step % save_steps == 0):
+                # Save model checkpoint
+                model_file = f'{model_folder}/{global_step}.pt'
+                checkpoints.append(model_file)
+                model.save_pretrained(model_file)
+                print('Saving model checkpoint to %s', model_file)
 
-                    print(json.dumps({**logs, **{'step': global_step}}))
+        avg_metrics = {}
+        for m in list_metrics:
+            avg_metrics[m] = total_metrics[m] / len(train_dataloader)
+        list_avg_train_metrics.append(avg_metrics)
 
-                if (args.local_rank in [-1, 0] and args.save_steps > 0 and
-                        global_step % args.save_steps == 0):
-                    # Save model checkpoint
-                    output_dir = os.path.join(args.output_dir,
-                                              'checkpoint-{}'.format(global_step))
-                    if not os.path.exists(output_dir):
-                        os.makedirs(output_dir)
-                    model_to_save = (
-                        model.module if hasattr(model, 'module') else model
-                    )  # Take care of distributed/parallel training
-                    model_to_save.save_pretrained(output_dir)
-                    tokenizer.save_pretrained(output_dir)
+    # evaluate through all checkpoints
+    best_metrics = {}
+    best_checkpoint = ''
+    best_predictions = None
+    list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
+    for m in list_metrics:
+        best_metrics[m] = 0
+    best_metrics['loss'] = float('inf')
+    for checkpoint in checkpoints:
+        model = AutoModelForSequenceClassification.from_pretrained(
+            checkpoint)
+        valid_predictions, valid_metrics = finetuning_utils.new_eval(
+            model, val_dataloader, device)
 
-                    torch.save(args, os.path.join(output_dir,
-                               'training_args.bin'))
-                    logger.info('Saving model checkpoint to %s', output_dir)
+        if metric == 'loss' and valid_metrics[metric] < best_metrics[metric]:
+            best_metrics = valid_metrics
+            best_predictions = valid_predictions
+            model_file = f'{model_folder}/best_model.pt'
+            model.save_pretrained(model_file)
+            best_checkpoint = checkpoint
+        elif metric != 'loss' and valid_metrics[metric] > best_metrics[metric]:
+            best_metrics = valid_metrics
+            best_predictions = valid_predictions
+            model_file = f'{model_folder}/best_model.pt'
+            model.save_pretrained(model_file)
+            best_checkpoint = checkpoint
 
-                    torch.save(optimizer.state_dict(),
-                               os.path.join(output_dir, 'optimizer.pt'))
-                    torch.save(scheduler.state_dict(),
-                               os.path.join(output_dir, 'scheduler.pt'))
-                    logger.info('Saving optimizer and scheduler states to %s',
-                                output_dir)
+    train_results = {}
+    train_results['global_step'] = global_step
+    train_results['train_loss'] = tr_loss / global_step
+    train_results['model_file'] = model_file
+    train_results['list_avg_train_metrics'] = list_avg_train_metrics
+    train_results['best_metrics'] = best_metrics
+    train_results['best_predictions'] = best_predictions
+    train_results['best_checkpoint'] = best_checkpoint
 
-            if args.max_steps > 0 and global_step > args.max_steps:
-                epoch_iterator.close()
-                break
-        if args.max_steps > 0 and global_step > args.max_steps:
-            train_iterator.close()
-            break
-
-    return global_step, tr_loss / global_step
-    """
-    cross_entropy = nn.CrossEntropyLoss()
-
-    best_valid_metric = 0
-    best_valid_epoch = 0
-    if metric == 'loss':
-        best_valid_metric = float('inf')
-
-    # empty lists to store training and validation loss of each epoch
-    train_metrics_list = []
-    valid_metrics_list = []
-    train_predictions_list = []
-    valid_predictions_list = []
-    n_no_improvement = 0
-    early_stop = False
-    model_file = ''
-    print('Starting training')
-
-    # for each epoch
-    for epoch in range(epochs):
-        print(f'Epoch {epoch+1}/{epochs}')
-        # train model
-        train_predictions, train_metrics = finetuning_utils.tr
-        
-        ain(model, train_dataloader,
-                                                                  cross_entropy, optimizer, device)
-
-        # evaluate model
-        valid_predictions, valid_metrics = finetuning_utils.evaluate(model, val_dataloader,
-                                                                     cross_entropy, device)
-        # get best metric
-        if metric == 'loss' and valid_metrics[metric] < best_valid_metric:
-            best_valid_epoch = epoch
-            best_valid_metric = valid_metrics[metric]
-            model_file = f'{model_folder}/{epoch}.pt'
-            torch.save(model.state_dict(), model_file)
-            n_no_improvement = 0
-
-        elif metric != 'loss' and valid_metrics[metric] > best_valid_metric:
-            best_valid_epoch = epoch
-            best_valid_metric = valid_metrics[metric]
-            model_file = f'{model_folder}/{epoch}.pt'
-            torch.save(model.state_dict(), model_file)
-            n_no_improvement = 0
-        else:
-            n_no_improvement += 1
-
-        train_metrics_list.append(train_metrics)
-        valid_metrics_list.append(valid_metrics)
-        train_predictions_list.append(train_predictions)
-        valid_predictions_list.append(valid_predictions)
-
-        print(
-            f'Training Metrics: {train_metrics}')
-        print(
-            f'Validation Metrics: {valid_metrics}')
-        if n_no_improvement > early_stop_patience:
-            print(f'Early stopping at epoch {epoch + 1}')
-            early_stop = True
-            break
-
-    # logging.info best metrics
-    print(
-        f'Best validation epoch is {best_valid_epoch + 1} with metrics: {valid_metrics_list[epoch]}\nModel can be found here saved_weights_early_stop_{best_valid_epoch}_{metric}.pt')
-
-    results = {}
-    results['best_valid_epoch'] = best_valid_epoch
-    results['train_metrics_list'] = train_metrics_list
-    results['valid_metrics_list'] = valid_metrics_list
-    results['best_valid_epoch'] = best_valid_epoch
-    results['best_valid_metric'] = valid_metrics_list[best_valid_epoch]
-    results['early_stop'] = early_stop
-    results['model_file'] = model_file
-    return results
-    """
+    return train_results
 
 
 def run_test(params):
@@ -287,22 +218,16 @@ def run_test(params):
       results: dictionary that contains all data
       test_predictions: list with test_predictions
     """
-    bert = AutoModel.from_pretrained(params['bert'])
     tokenizer = AutoTokenizer.from_pretrained(params['tokenizer'])
     level = params['level']
     test_batch_size = params['test_batch_size']
     max_seq_length = params['max_seq_length']
-    dropout_prob = params['dropout_prob']
-    hidden_size = bert.config.hidden_size
-    num_classes = params['num_classes']
     test_files = params['test_files']
     label_space_file = params['label_space_file']
     model_file = params['model_file']
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = Classifier(bert, dropout_prob, hidden_size, num_classes)
-    model.to(device)
-    model.load_state_dict(torch.load(model_file))
-
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_file)
     # Get Data
     print('Getting Test Data')
     test_df = data_utils.get_df_from_files(test_files)
@@ -313,12 +238,10 @@ def run_test(params):
     test_dataloader = DataLoader(
         test_data, batch_size=test_batch_size, num_workers=0)
 
-    # Get cross entropy
-    cross_entropy = nn.CrossEntropyLoss()
     print('Starting Test')
 
-    test_predictions, test_metrics = finetuning_utils.test(model, test_dataloader,
-                                                           cross_entropy, device)
+    test_predictions, test_metrics = finetuning_utils.new_eval(
+        model, test_dataloader, device)
     print(f'Test Metrics: {test_metrics}')
     results = {}
     for k in test_metrics.keys():

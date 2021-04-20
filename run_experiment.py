@@ -1,6 +1,7 @@
 import os
 import logging
 import argparse
+import data_utils
 from datetime import datetime
 from finetuning_utils import set_seed
 from experiment import run_train, run_test
@@ -43,40 +44,50 @@ def run_madar_experiment():
     params['level'] = 'city'
     params['train_batch_size'] = 32
     params['val_batch_size'] = 32
-    params['max_seq_length'] = 32
-    params['dropout_prob'] = 0.1
+    params['max_seq_length'] = 128
     params['num_classes'] = 26
     params['epochs'] = 10
-    params['learning_rate'] = 1e-5
-    params['early_stop_patience'] = 2
-    params['metric'] = 'accuracy'
-    madar_folder = '../data_processed_second/madar_shared_task1/'
+    params['learning_rate'] = 3e-5
+    params['metric'] = 'f1'
+    params['adam_epsilon'] = 1e-08
+    params['seed'] = 12345
+    params['save_steps'] = 500
+    params['weight_decay'] = 0.0
+    params['warmup_steps'] = 0
+    params['gradient_accumulation_steps'] = 1
+    params['max_grad_norm'] = 1.0
+
+    madar_folder = '../hierarchical-did/data_processed_second/madar_shared_task1/'
     params['train_files'] = [
         f'{madar_folder}MADAR-Corpus-26-train.lines', f'{madar_folder}MADAR-Corpus-6-train.lines']
     params['val_files'] = [
         f'{madar_folder}MADAR-Corpus-26-dev.lines']
-    params['label_space_file'] = f'labels/madar_labels_{params["level"]}.txt'
 
-    for metric in list_metrics:
-        print('Entering Training')
-        # datetime object containing current date and time
-        now = datetime.now()
-        dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
-        params['an experiment name'] = f'{metric}; train-26,6; dev-26; test-26'
-        params['time'] = dt_string
-        params['metric'] = metric
-        params['model_folder'] = f'{dt_string}'
-        os.mkdir(params['model_folder'])
-        train_results = run_train(params)
-        print('Entering Testing')
-        params['model_file'] = train_results['model_file']
-        params['test_files'] = [f'{madar_folder}MADAR-Corpus-26-test.lines']
-        params['test_batch_size'] = 8
-        test_results, test_predictions = run_test(params)
+    params['label_space_file'] = f'labels/madar_{params["level"]}_label_id.txt'
+    labels, label2id, id2label = data_utils.get_label_space(
+        params['label_space_file'])
+    params['labels'] = labels
+    params['label2id'] = label2id
+    params['id2label'] = id2label
 
-        record_predictions(params['model_folder'], test_predictions)
-        record_experiment([params, test_results, train_results],
-                          'experiments', 'madar')
+    print('Entering Training')
+    # datetime object containing current date and time
+    now = datetime.now()
+    dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
+    params['an experiment name'] = f'{params["metric"]}; train-26,6; dev-26; test-26'
+    params['time'] = dt_string
+    params['model_folder'] = f'{dt_string}'
+    os.mkdir(params['model_folder'])
+    train_results = run_train(params)
+    print('Entering Testing')
+    params['model_file'] = train_results['model_file']
+    params['test_files'] = [f'{madar_folder}MADAR-Corpus-26-test.lines']
+    params['test_batch_size'] = 32
+    test_results, test_predictions = run_test(params)
+
+    record_predictions(params['model_folder'], test_predictions)
+    record_experiment([params, test_results, train_results],
+                      'experiments', 'madar')
 
 
 def run_level_experiment(level):
@@ -90,7 +101,7 @@ def run_level_experiment(level):
     params['level'] = level
     params['train_batch_size'] = 32
     params['val_batch_size'] = 32
-    params['max_seq_length'] = 32
+    params['max_seq_length'] = 128
     params['dropout_prob'] = 0.1
     if level == 'region':
         params['num_classes'] = 6
@@ -124,11 +135,6 @@ def run_level_experiment(level):
         #record_predictions(params['model_folder'], test_predictions)
         record_experiment([params, train_results],
                           'experiments', f'{level}')
-
-
-def run_camelbert_experiment(params):
-    params['seed'] = 1234
-    set_seed(params[seed])
 
 
 if __name__ == '__main__':

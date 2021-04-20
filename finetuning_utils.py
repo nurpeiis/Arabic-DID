@@ -30,7 +30,7 @@ def metrics(preds, labels, total_metrics):
 def new_eval(model, dataloader, device):
 
     print("\nEvaluating...")
-
+    model.to(device)
     # deactivate dropout layers
     model.eval()
 
@@ -79,7 +79,7 @@ def new_eval(model, dataloader, device):
 def evaluate(model, dev_dataloader, cross_entropy, device):
 
     print("\nEvaluating...")
-
+    model.to(device)
     # deactivate dropout layers
     model.eval()
 
@@ -130,7 +130,7 @@ def evaluate(model, dev_dataloader, cross_entropy, device):
 def test(model, test_dataloader, cross_entropy, device):
 
     print("\nTesting...")
-
+    model.to(device)
     # deactivate dropout layers
     model.eval()
 
@@ -179,7 +179,7 @@ def test(model, test_dataloader, cross_entropy, device):
 
 
 def new_train(model, train_dataloader, cross_entropy, optimizer, device):
-
+    model.to(device)
     model.train()
 
     list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']

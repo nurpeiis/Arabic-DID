@@ -1,0 +1,16 @@
+msa msa,0
+lb levant,1
+eg nile_basin,2
+qa gulf,3
+ma maghreb,4
+tn maghreb,5
+dz maghreb,6
+jo levant,7
+sy levant,8
+sa gulf,9
+ps levant,10
+ye gulf_aden,11
+iq gulf,12
+ly maghreb,13
+sd nile_basin,14
+om gulf,15

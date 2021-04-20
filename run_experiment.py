@@ -25,11 +25,11 @@ def record_experiment(list_dicts, sheet_title, page_title):
     rewrite_page(sheet, index_page, df)
 
 
-def record_predictions(model_folder, test_predictions):
+def record_predictions(model_folder, predictions, file):
     print(f'Writing predictions into {model_folder}')
-    with open(f'{model_folder}/test_predictions.txt', 'w') as f:
-        for p in test_predictions:
-            f.write(f'{p}\n')
+    with open(f'{model_folder}/{file}', 'w') as f:
+        for i in range(len(predictions)):
+            f.write(f'{predictions[i]}\n')
 
 
 def run_madar_experiment():
@@ -59,7 +59,7 @@ def run_madar_experiment():
 
     madar_folder = '../data_processed_second/madar_shared_task1/'
     params['train_files'] = [
-        f'{madar_folder}MADAR-Corpus-26-train.lines', f'{madar_folder}MADAR-Corpus-6-train.lines']
+        f'{madar_folder}MADAR-Corpus-26-train.lines']
     params['val_files'] = [
         f'{madar_folder}MADAR-Corpus-26-dev.lines']
 
@@ -74,7 +74,7 @@ def run_madar_experiment():
     # datetime object containing current date and time
     now = datetime.now()
     dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
-    params['an experiment name'] = f'{params["metric"]}; train-26,6; dev-26; test-26'
+    params['an experiment name'] = f'{params["metric"]}; train-26; dev-26; test-26'
     params['time'] = dt_string
     params['model_folder'] = f'{dt_string}'
     os.mkdir(params['model_folder'])
@@ -83,9 +83,12 @@ def run_madar_experiment():
     params['model_file'] = train_results['model_file']
     params['test_files'] = [f'{madar_folder}MADAR-Corpus-26-test.lines']
     params['test_batch_size'] = 32
-    test_results, test_predictions = run_test(params)
+    test_results, test_predictions, test_predictions_argmax = run_test(params)
 
-    record_predictions(params['model_folder'], test_predictions)
+    record_predictions(params['model_folder'],
+                       test_predictions, 'predictions_distribution.txt')
+    record_predictions(params['model_folder'],
+                       test_predictions_argmax, 'predictions_argmax.txt')
     record_experiment([params, test_results, train_results],
                       'experiments', 'madar')
 
@@ -138,7 +141,7 @@ def run_level_experiment(level):
     # datetime object containing current date and time
     now = datetime.now()
     dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
-    params['an experiment name'] = f'{params["metric"]}; train-26,6; dev-26; test-26'
+    params['an experiment name'] = f'{params["metric"]}; aggregated_{level}'
     params['time'] = dt_string
     params['model_folder'] = f'{dt_string}'
     os.mkdir(params['model_folder'])
@@ -148,8 +151,12 @@ def run_level_experiment(level):
     params['model_file'] = train_results['model_file']
     params['test_files'] = [f'{aggregated_folder}/{level}_test.tsv']
     params['test_batch_size'] = 32
-    test_results, test_predictions = run_test(params)
-    record_predictions(params['model_folder'], test_predictions)
+    test_results, test_predictions, test_predictions_argmax = run_test(params)
+
+    record_predictions(params['model_folder'],
+                       test_predictions, 'predictions_distribution.txt')
+    record_predictions(params['model_folder'],
+                       test_predictions_argmax, 'predictions_argmax.txt')
     """
     record_experiment([params, train_results],
                       'experiments', f'{level}_aggregated')
@@ -157,7 +164,7 @@ def run_level_experiment(level):
 
 if __name__ == '__main__':
     # uncomment following line to run madar 26 experiment
-    # run_madar_experiment()
+    run_madar_experiment()
     # uncomment following line to run city level experiment
     # run_level_experiment('city')
     # uncomment following line to run country level experiment

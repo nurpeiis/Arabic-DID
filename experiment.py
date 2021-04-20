@@ -8,6 +8,7 @@ import data_utils
 import did_dataset
 import finetuning_utils
 import torch.nn as nn
+import numpy as np
 import pandas as pd
 from tqdm import tqdm, trange
 from torch.utils.data import RandomSampler, DataLoader
@@ -81,9 +82,9 @@ def run_train(params):
     val_sampler = RandomSampler(val_data)
 
     train_dataloader = DataLoader(
-        train_data, sampler=train_sampler, batch_size=train_batch_size, num_workers=0)
+        train_data, sampler=train_sampler, batch_size=train_batch_size)
     val_dataloader = DataLoader(
-        val_data, sampler=val_sampler, batch_size=val_batch_size, num_workers=0)
+        val_data, sampler=val_sampler, batch_size=val_batch_size)
 
     t_total = (len(train_dataloader) // gradient_accumulation_steps*epochs)
     # define the optimizer
@@ -127,6 +128,9 @@ def run_train(params):
         for m in list_metrics:
             total_metrics[m] = 0
         epoch_iterator = tqdm(train_dataloader, desc='Iteration')
+        total_preds = None
+        total_true_labels = None
+
         for step, batch in enumerate(epoch_iterator):
             model.train()
             batch['input_ids'] = batch['input_ids'].to(device)
@@ -144,10 +148,16 @@ def run_train(params):
             total_metrics['loss'] += loss.item()
             preds_a = logits.detach().cpu().numpy()
             label_ids = labels.to('cpu').numpy()
+            if total_preds is None:
+                total_preds = preds_a
+                total_true_labels = label_ids
+            else:
+                total_preds = np.append(total_preds, preds_a, axis=0)
+                total_true_labels = np.append(
+                    total_true_labels,
+                    label_ids,
+                    axis=0)
 
-            # Calculate the accuracy for this batch of test sentences.
-            tmp_metrics = finetuning_utils.metrics(
-                preds_a, label_ids,  total_metrics)
             #print(f'Tmp metrics {tmp_metrics}%')
 
             torch.nn.utils.clip_grad_norm_(model.parameters(),
@@ -165,15 +175,16 @@ def run_train(params):
                 model.save_pretrained(model_file)
                 print('Saving model checkpoint to %s', model_file)
 
-        avg_metrics = {}
-        for m in list_metrics:
-            avg_metrics[m] = total_metrics[m] / len(train_dataloader)
-        list_avg_train_metrics.append(avg_metrics)
+        # Calculate the accuracy for this batch of test sentences.
+        finetuning_utils.metrics(
+            total_preds, total_true_labels,  total_metrics)
+        list_avg_train_metrics.append(total_metrics)
 
     # evaluate through all checkpoints
     best_metrics = {}
     best_checkpoint = ''
     best_predictions = None
+    best_predictions_argmax = None
     list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
     for m in list_metrics:
         best_metrics[m] = 0
@@ -181,18 +192,20 @@ def run_train(params):
     for checkpoint in checkpoints:
         model = AutoModelForSequenceClassification.from_pretrained(
             checkpoint)
-        valid_predictions, valid_metrics = finetuning_utils.new_eval(
+        valid_predictions, valid_predictions_argmax, valid_metrics = finetuning_utils.new_eval(
             model, val_dataloader, device)
 
         if metric == 'loss' and valid_metrics[metric] < best_metrics[metric]:
             best_metrics = valid_metrics
             best_predictions = valid_predictions
+            best_predictions_argmax = valid_predictions_argmax
             model_file = f'{model_folder}/best_model.pt'
             model.save_pretrained(model_file)
             best_checkpoint = checkpoint
         elif metric != 'loss' and valid_metrics[metric] > best_metrics[metric]:
             best_metrics = valid_metrics
             best_predictions = valid_predictions
+            best_predictions_argmax = valid_predictions_argmax
             model_file = f'{model_folder}/best_model.pt'
             model.save_pretrained(model_file)
             best_checkpoint = checkpoint
@@ -204,6 +217,7 @@ def run_train(params):
     train_results['list_avg_train_metrics'] = list_avg_train_metrics
     train_results['best_metrics'] = best_metrics
     train_results['best_predictions'] = best_predictions
+    train_results['best_predictions_argmax'] = best_predictions_argmax
     train_results['best_checkpoint'] = best_checkpoint
 
     return train_results
@@ -235,16 +249,18 @@ def run_test(params):
     test_data = did_dataset.DIDDataset(
         test_df, tokenizer, level, label_space_file, max_seq_length)
 
+    test_sampler = RandomSampler(test_data)
+
     test_dataloader = DataLoader(
-        test_data, batch_size=test_batch_size, num_workers=0)
+        test_data, sampler=test_sampler, batch_size=test_batch_size)
 
     print('Starting Test')
 
-    test_predictions, test_metrics = finetuning_utils.new_eval(
+    test_predictions, test_predictions_argmax, test_metrics = finetuning_utils.new_eval(
         model, test_dataloader, device)
     print(f'Test Metrics: {test_metrics}')
     results = {}
     for k in test_metrics.keys():
         results[f'test_{k}'] = test_metrics[k]
 
-    return results, test_predictions
+    return results, test_predictions, test_predictions_argmax

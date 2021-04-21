@@ -105,17 +105,20 @@ def run_level_experiment(level):
     params['dropout_prob'] = 0.1
     if level == 'region':
         params['num_classes'] = 6
+        params['epochs'] = 3
     elif level == 'country':
         params['num_classes'] = 22
+        params['epochs'] = 3
     elif level == 'city':
         params['num_classes'] = 113
+        params['epochs'] = 10
     else:
         params['num_classes'] = 26
+        params['epochs'] = 10
     params['train_batch_size'] = 32
     params['val_batch_size'] = 32
     params['max_seq_length'] = 128
     params['num_classes'] = 26
-    params['epochs'] = 10
     params['learning_rate'] = 3e-5
     params['metric'] = 'f1'
     params['adam_epsilon'] = 1e-08
@@ -164,7 +167,7 @@ def run_level_experiment(level):
 
 if __name__ == '__main__':
     # uncomment following line to run madar 26 experiment
-    run_madar_experiment()
+    # run_madar_experiment()
     # uncomment following line to run city level experiment
     # run_level_experiment('city')
     # uncomment following line to run country level experiment

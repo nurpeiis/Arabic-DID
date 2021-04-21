@@ -16,10 +16,6 @@ from torch.utils.data import RandomSampler, DataLoader
 from transformers import (WEIGHTS_NAME, AutoModel, AutoTokenizer, AdamW, AutoModelForSequenceClassification, AutoConfig,
                           get_linear_schedule_with_warmup)
 
-# manual seed random number generator
-torch.manual_seed(999)
-random.seed(999)
-
 
 def run_train(params):
     """

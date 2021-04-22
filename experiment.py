@@ -13,7 +13,7 @@ import pandas as pd
 from tqdm import tqdm, trange
 from torch.utils.data import RandomSampler, DataLoader
 
-from transformers import (WEIGHTS_NAME, AutoModel, AutoTokenizer, AdamW, AutoModelForSequenceClassification, AutoConfig,
+from transformers import (AutoTokenizer, AdamW, AutoModelForSequenceClassification, AutoConfig,
                           get_linear_schedule_with_warmup)
 
 
@@ -171,6 +171,12 @@ def run_train(params):
                 model.save_pretrained(model_file)
                 print('Saving model checkpoint to %s', model_file)
 
+        # save model at the end of each epoch
+        model_file = f'{model_folder}/{global_step}.pt'
+        checkpoints.append(model_file)
+        model.save_pretrained(model_file)
+        print('Saving model checkpoint to %s', model_file)
+
         # Calculate the accuracy for this batch of test sentences.
         finetuning_utils.metrics(
             total_preds, total_true_labels,  total_metrics)
@@ -188,7 +194,7 @@ def run_train(params):
     for checkpoint in checkpoints:
         model = AutoModelForSequenceClassification.from_pretrained(
             checkpoint)
-        valid_predictions, valid_predictions_argmax, valid_metrics = finetuning_utils.new_eval(
+        valid_predictions, valid_predictions_argmax, valid_metrics = finetuning_utils.evaluate(
             model, val_dataloader, device)
 
         if metric == 'loss' and valid_metrics[metric] < best_metrics[metric]:
@@ -252,7 +258,7 @@ def run_test(params):
 
     print('Starting Test')
 
-    test_predictions, test_predictions_argmax, test_metrics = finetuning_utils.new_eval(
+    test_predictions, test_predictions_argmax, test_metrics = finetuning_utils.evaluate(
         model, test_dataloader, device)
     print(f'Test Metrics: {test_metrics}')
     results = {}

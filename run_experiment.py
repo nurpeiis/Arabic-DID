@@ -1,9 +1,6 @@
 import os
-import logging
-import argparse
 import data_utils
 from datetime import datetime
-from finetuning_utils import set_seed
 from experiment import run_train, run_test
 from google_sheet_utils import get_sheet, get_all_records, rewrite_page, create_page, find_idx_page
 
@@ -123,7 +120,7 @@ def run_level_experiment(level):
     params['metric'] = 'f1'
     params['adam_epsilon'] = 1e-08
     params['seed'] = 12345
-    params['save_steps'] = 500
+    params['save_steps'] = 2000
     params['weight_decay'] = 0.0
     params['warmup_steps'] = 0
     params['gradient_accumulation_steps'] = 1
@@ -146,7 +143,7 @@ def run_level_experiment(level):
     dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
     params['an experiment name'] = f'{params["metric"]}; aggregated_{level}'
     params['time'] = dt_string
-    params['model_folder'] = f'{dt_string}'
+    params['model_folder'] = f'{level}_{dt_string}'
     os.mkdir(params['model_folder'])
     train_results = run_train(params)
     """
@@ -167,7 +164,7 @@ def run_level_experiment(level):
 
 if __name__ == '__main__':
     # uncomment following line to run madar 26 experiment
-    # run_madar_experiment()
+    run_madar_experiment()
     # uncomment following line to run city level experiment
     # run_level_experiment('city')
     # uncomment following line to run country level experiment

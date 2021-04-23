@@ -22,9 +22,9 @@ def record_experiment(list_dicts, sheet_title, page_title):
     rewrite_page(sheet, index_page, df)
 
 
-def record_predictions(model_folder, predictions, file):
-    print(f'Writing predictions into {model_folder}')
-    with open(f'{model_folder}/{file}', 'w') as f:
+def record_predictions(folder, predictions, file):
+    print(f'Writing predictions into {folder}')
+    with open(f'{folder}/{file}', 'w') as f:
         for i in range(len(predictions)):
             f.write(f'{predictions[i]}\n')
 
@@ -160,6 +160,41 @@ def run_level_experiment(level):
     """
     record_experiment([params, train_results],
                       'experiments', f'{level}_aggregated')
+
+
+def run_level_test_madar_experiment(level):
+    params = {}
+
+    print('Initializing training variables')
+    if level == 'region':
+        params['num_classes'] = 6
+    elif level == 'country':
+        params['num_classes'] = 22
+    elif level == 'city':
+        params['num_classes'] = 113
+    else:
+        params['num_classes'] = 26
+    params['bert'] = 'CAMeL-Lab/bert-base-camelbert-mix'
+    params['tokenizer'] = 'CAMeL-Lab/bert-base-camelbert-mix'
+    params['level'] = level
+    params['max_seq_length'] = 128
+    params['num_classes'] = 26
+    params['seed'] = 12345
+    madar_folder = '../data_processed_second/madar_shared_task1/'
+    params['model_file'] = 'city_21-04-2021-17:17:54/best_model.pt'
+    params['test_files'] = [f'{madar_folder}MADAR-Corpus-26-test.lines']
+    params['label_space_file'] = f'labels/{level}_label_id.txt'
+    params['label_space_madar_file'] = f'labels/madar_{level}_label_id.txt'
+    labels, label2id, id2label = data_utils.get_label_space(
+        params['label_space_file'])
+    params['labels'] = labels
+    params['label2id'] = label2id
+    params['id2label'] = id2label
+    params['test_batch_size'] = 32
+    test_results, test_predictions, test_predictions_argmax = run_test(params)
+    # TODO: Check prediction distribution  filtering
+    record_experiment([params, test_results],
+                      'experiments', f'madar_{level}_test')
 
 
 if __name__ == '__main__':

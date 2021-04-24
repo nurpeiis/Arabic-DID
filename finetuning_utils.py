@@ -2,6 +2,7 @@ import torch
 import random
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from tqdm import tqdm
 
 
 def set_seed(seed):
@@ -43,7 +44,8 @@ def evaluate(model, dataloader, device):
     total_preds = None
     total_true_labels = None
     # iterate over batches
-    for step, batch in enumerate(dataloader):
+    iterator = tqdm(dataloader, desc='Iteration')
+    for step, batch in enumerate(iterator):
 
         # deactivate autograd
         with torch.no_grad():
@@ -77,4 +79,4 @@ def evaluate(model, dataloader, device):
     # get argmax
     total_preds_argmax = np.argmax(total_preds, axis=1).flatten()
 
-    return total_preds, total_preds_argmax, total_metrics
+    return total_preds, total_preds_argmax, total_true_labels, total_metrics

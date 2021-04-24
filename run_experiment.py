@@ -1,5 +1,7 @@
 import os
 import data_utils
+import filter_logit
+import finetuning_utils
 from datetime import datetime
 from experiment import run_train, run_test
 from google_sheet_utils import get_sheet, get_all_records, rewrite_page, create_page, find_idx_page
@@ -162,6 +164,14 @@ def run_level_experiment(level):
                       'experiments', f'{level}_aggregated')
 
 
+def get_metrics():
+    list_metrics = ['accuracy', 'precision', 'recall', 'f1', 'loss']
+    total_metrics = {}
+    for m in list_metrics:
+        total_metrics[m] = 0
+    return total_metrics
+
+
 def run_level_test_madar_experiment(level):
     params = {}
 
@@ -180,8 +190,9 @@ def run_level_test_madar_experiment(level):
     params['max_seq_length'] = 128
     params['num_classes'] = 26
     params['seed'] = 12345
-    madar_folder = '../data_processed_second/madar_shared_task1/'
-    params['model_file'] = 'city_21-04-2021-17:17:54/best_model.pt'
+    madar_folder = '../hierarchical-did/data_processed_second/madar_shared_task1/'
+    #params['model_file'] = 'city_21-04-2021-17:17:54/best_model.pt'
+    params['model_file'] = 'models/best_model.pt'
     params['test_files'] = [f'{madar_folder}MADAR-Corpus-26-test.lines']
     params['label_space_file'] = f'labels/{level}_label_id.txt'
     params['label_space_madar_file'] = f'labels/madar_{level}_label_id.txt'
@@ -190,16 +201,26 @@ def run_level_test_madar_experiment(level):
     params['labels'] = labels
     params['label2id'] = label2id
     params['id2label'] = id2label
+    space = filter_logit.get_space(
+        params['label_space_file'], params['label_space_madar_file'])
     params['test_batch_size'] = 32
-    test_results, test_predictions, test_predictions_argmax = run_test(params)
+    test_results, test_predictions, test_predictions_argmax, true_labels = run_test(
+        params)
+    nullified_metrics = get_metrics()
+    nullified_preds = filter_logit.nullify_weight(test_predictions, space)
+    finetuning_utils.metrics(nullified_preds, true_labels, nullified_metrics)
+    for k in nullified_metrics.keys():
+        test_results[f'nullified_{k}'] = nullified_metrics[k]
     # TODO: Check prediction distribution  filtering
     record_experiment([params, test_results],
                       'experiments', f'madar_{level}_test')
 
 
 if __name__ == '__main__':
+    # uncomment following line to run high level experiment on madar
+    run_level_test_madar_experiment('city')
     # uncomment following line to run madar 26 experiment
-    run_madar_experiment()
+    # run_madar_experiment()
     # uncomment following line to run city level experiment
     # run_level_experiment('city')
     # uncomment following line to run country level experiment

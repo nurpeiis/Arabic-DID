@@ -194,7 +194,7 @@ def run_train(params):
     for checkpoint in checkpoints:
         model = AutoModelForSequenceClassification.from_pretrained(
             checkpoint)
-        valid_predictions, valid_predictions_argmax, valid_metrics = finetuning_utils.evaluate(
+        valid_predictions, valid_predictions_argmax, true_labels, valid_metrics = finetuning_utils.evaluate(
             model, val_dataloader, device)
 
         if metric == 'loss' and valid_metrics[metric] < best_metrics[metric]:
@@ -258,11 +258,11 @@ def run_test(params):
 
     print('Starting Test')
 
-    test_predictions, test_predictions_argmax, test_metrics = finetuning_utils.evaluate(
+    test_predictions, test_predictions_argmax, true_labels, test_metrics = finetuning_utils.evaluate(
         model, test_dataloader, device)
     print(f'Test Metrics: {test_metrics}')
     results = {}
     for k in test_metrics.keys():
         results[f'test_{k}'] = test_metrics[k]
 
-    return results, test_predictions, test_predictions_argmax
+    return results, test_predictions, test_predictions_argmax, true_labels

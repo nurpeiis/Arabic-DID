@@ -6,3 +6,5 @@
 *data_aggregated/*
 *aggregated_data/*
 *notebooks/.ipynb_checkpoints/*
+*models/*
+predictions_*

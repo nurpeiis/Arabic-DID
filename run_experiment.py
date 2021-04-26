@@ -2,6 +2,7 @@ import os
 import data_utils
 import filter_logit
 import finetuning_utils
+import numpy as np
 from datetime import datetime
 from experiment import run_train, run_test
 from google_sheet_utils import get_sheet, get_all_records, rewrite_page, create_page, find_idx_page
@@ -24,11 +25,9 @@ def record_experiment(list_dicts, sheet_title, page_title):
     rewrite_page(sheet, index_page, df)
 
 
-def record_predictions(folder, predictions, file):
-    print(f'Writing predictions into {folder}')
-    with open(f'{folder}/{file}', 'w') as f:
-        for i in range(len(predictions)):
-            f.write(f'{predictions[i]}\n')
+def record_predictions(predictions, file):
+    print(f'Writing predictions into {file}')
+    np.savez(f'{file}', predictions)
 
 
 def run_madar_experiment():
@@ -104,10 +103,10 @@ def run_level_experiment(level):
     params['dropout_prob'] = 0.1
     if level == 'region':
         params['num_classes'] = 6
-        params['epochs'] = 3
+        params['epochs'] = 1
     elif level == 'country':
         params['num_classes'] = 22
-        params['epochs'] = 3
+        params['epochs'] = 2
     elif level == 'city':
         params['num_classes'] = 113
         params['epochs'] = 10
@@ -191,6 +190,7 @@ def run_level_test_madar_experiment(level):
     params['num_classes'] = 26
     params['seed'] = 12345
     madar_folder = '../hierarchical-did/data_processed_second/madar_shared_task1/'
+    #madar_folder = '../data_processed_second/madar_shared_task1/'
     #params['model_file'] = 'city_21-04-2021-17:17:54/best_model.pt'
     params['model_file'] = 'models/best_model.pt'
     params['test_files'] = [f'{madar_folder}MADAR-Corpus-26-test.lines']
@@ -206,6 +206,7 @@ def run_level_test_madar_experiment(level):
     params['test_batch_size'] = 32
     test_results, test_predictions, test_predictions_argmax, true_labels = run_test(
         params)
+    record_predictions(test_predictions, f'madar_{level}.npz')
     nullified_metrics = get_metrics()
     nullified_preds = filter_logit.nullify_weight(test_predictions, space)
     finetuning_utils.metrics(nullified_preds, true_labels, nullified_metrics)

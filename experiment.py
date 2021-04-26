@@ -28,20 +28,39 @@ def run_train(params):
     # Initialize variables
     print('Initializing variables')
     tokenizer = AutoTokenizer.from_pretrained(params['tokenizer'])
-    config = AutoConfig.from_pretrained(
-        params['bert'],
-        num_labels=params['num_classes'],
-        label2id=params['label2id'],
-        id2label=params['id2label'],
-        finetuning_task='arabic_did'
-    )
+    if 'pretrained' in params:
+        model_old = AutoModelForSequenceClassification.from_pretrained(
+            params['pretrained']
+        )
+        bert_file = f'{params["model_folder"]}/bert.pt'
+        model_old.bert.save_pretrained(bert_file)
+        config = AutoConfig.from_pretrained(
+            bert_file,
+            num_labels=params['num_classes'],
+            label2id=params['label2id'],
+            id2label=params['id2label'],
+            finetuning_task='arabic_did'
+        )
+        model = AutoModelForSequenceClassification.from_pretrained(
+            bert_file,
+            config=config
+        )
+    else:
+        config = AutoConfig.from_pretrained(
+            params['bert'],
+            num_labels=params['num_classes'],
+            label2id=params['label2id'],
+            id2label=params['id2label'],
+            finetuning_task='arabic_did'
+        )
+        model = AutoModelForSequenceClassification.from_pretrained(
+            params['bert'],
+            config=config
+        )
     tokenizer = AutoTokenizer.from_pretrained(
         params['tokenizer']
     )
-    model = AutoModelForSequenceClassification.from_pretrained(
-        params['bert'],
-        config=config
-    )
+
     seed = params['seed']
     level = params['level']
     train_batch_size = params['train_batch_size']

@@ -14,6 +14,18 @@ def compute_list_distances(list_long_lat):
     return distances
 
 
+def compute_dict_distances(dict_long_lat):
+    distances = {}
+    keys = list(dict_long_lat.keys())
+    for i in range(len(keys)):
+        distances[keys[i]] = {}
+        for j in range(len(keys)):
+            distances[keys[i]][keys[j]] = compute_distance(
+                dict_long_lat[keys[i]], dict_long_lat[keys[j]])
+
+    return distances
+
+
 def get_long_lat(name, geolocator):
     location = geolocator.geocode(name)
     print(name, location)
@@ -31,36 +43,40 @@ def get_list(filename):
         return list_cities
 
 
-def get_list_from_label_space(filename='labels/label_space.tsv'):
+def get_dictionary_locations(filename='labels/final_label_space.tsv'):
     df = pd.read_csv(filename, sep='\t', header=0)
-    cities = []
+    map_locator_name = {}
     for index, row in df.iterrows():
+        label = ''
         if row['dialect_city_id'] != 'msa' and row['dialect_city_id'] != 'jerusalem' and row['dialect_city_id'] != 'al_suwayda':
             label = f'{row["dialect_city_id"].replace("_", " ")} {row["dialect_country_id"]}'
-            cities.append(label)
-    cities.append('jerusalem')
-    cities.append('as suwayda sy')
+        elif row['dialect_city_id'] == 'jerusalem':
+            label = 'jerusalem'
+        elif row['dialect_city_id'] == 'al_suwayda':
+            label = 'as suwayda sy'
+        if label != '':
+            map_locator_name[label] = [row['dialect_city_id'],
+                                       row['dialect_country_id'], row['dialect_region_id']]
+    return map_locator_name
 
-    return cities
 
-
-def save_distances_file(distances, list_names, filename):
-    with open(filename, 'w') as f:
-        heading = [i for i in list_names]
-        heading.insert(0, 'separator')
-        f.write('\t'.join(heading))
-        f.write('\n')
-        for i in range(len(list_names)):
-            # print(i, distances[i])
-            new_column = [str(name) for name in distances[i]]
-            new_column.insert(0, list_names[i])
-            f.write('\t'.join(new_column))
-            f.write('\n')
+def save_distances_file(distances, filename):
+    """
+    data = map(list, zip(*distances.keys())) + [distances.values()]
+    df = pd.DataFrame(zip(*data)).set_index([0, 1])[2].unstack()
+    df = df.combine_first(df.T).fillna(0)
+    """
+    df = pd.DataFrame.from_dict(distances)
+    df.to_csv(filename, index=False)
 
 
 geolocator = Nominatim(user_agent="a")
 
-list_cities = get_list_from_label_space()
-list_long_lat = [get_long_lat(i, geolocator) for i in list_cities]
-distances = compute_list_distances(list_long_lat)
-save_distances_file(distances, list_cities, 'labels/distances_hdid.tsv')
+map_locator_name = get_dictionary_locations()
+dict_long_latitude = {}
+for location in map_locator_name.keys():
+    actual_location = ' '.join(map_locator_name[location])
+    dict_long_latitude[actual_location] = get_long_lat(location, geolocator)
+
+distances = compute_dict_distances(dict_long_latitude)
+save_distances_file(distances, 'labels/distances_hdid.tsv')

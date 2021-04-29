@@ -49,3 +49,7 @@ conda activate  arabic-did
 
 ## Data Explanation:
 1. Dev has no zagazig and giza because `ldc_callhome_arabic_trans_1997_t19`  was splitted originally
+
+
+## Training idea:
+1. Train 

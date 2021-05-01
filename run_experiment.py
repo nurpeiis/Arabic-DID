@@ -59,7 +59,7 @@ def run_madar_experiment(level='city'):
     madar_extra = '../data_processed_second/madar_corpus6_extra/'
     params['train_files'] = [
         f'{madar_folder}MADAR-Corpus-26-train.lines', f'{madar_extra}train_BTEC-MSA-8K.lines',
-        f'{madar_extra}train_Beirut-MSA-8K.lines', f'{madar_extra}train_BTEC-Cairo-8K.lines', f'{madar_extra}train_BTEC-Tunis-8K.lines', f'{madar_extra}train_BTEC-Doha-8K.lines']
+        f'{madar_extra}train_BTEC-Beirut-8K.lines', f'{madar_extra}train_BTEC-Cairo-8K.lines', f'{madar_extra}train_BTEC-Tunis-8K.lines', f'{madar_extra}train_BTEC-Doha-8K.lines']
     params['val_files'] = [
         f'{madar_folder}MADAR-Corpus-26-dev.lines']
 
@@ -74,7 +74,7 @@ def run_madar_experiment(level='city'):
     # datetime object containing current date and time
     now = datetime.now()
     dt_string = now.strftime('%d-%m-%Y-%H:%M:%S')
-    params['an experiment name'] = f'{params["metric"]}; train-26; dev-26; test-26'
+    params['an experiment name'] = f'{params["metric"]}; train-26, madar extra; dev-26; test-26'
     params['time'] = dt_string
     params['model_folder'] = f'{dt_string}'
     os.mkdir(params['model_folder'])
@@ -89,7 +89,7 @@ def run_madar_experiment(level='city'):
     record_predictions(test_predictions, test_predictions_argmax,
                        f'{params["model_folder"]}/madar_predictions.npz')
     record_experiment([params, test_results, train_results],
-                      'experiments', 'madar')
+                      'experiments', 'madar extra')
 
 
 def run_madar_pretrained_experiment():
@@ -296,7 +296,7 @@ def run_city_aggregate_experiment(level):
                        f'{params["model_folder"]}/{level}_predictions.npz')
     """
     record_experiment([params, train_results],
-                      'experiments', f'{level}_aggregated_city')
+                      'experiments', f'{level}_aggregated_city_madar')
 
 
 def get_metrics():

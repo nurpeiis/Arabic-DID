@@ -101,6 +101,8 @@ def run_madar_pretrained_experiment():
 
     params['bert'] = 'CAMeL-Lab/bert-base-camelbert-mix'
     params['pretrained'] = 'city_21-04-2021-17:17:54/best_model.pt'
+    params['pretrained'] = 'country_01-05-2021-10:41:52/best_model.pt'
+    params['pretrained'] = 'region_02-05-2021-02:37:27/best_model.pt'
     params['tokenizer'] = 'CAMeL-Lab/bert-base-camelbert-mix'
     params['level'] = 'city'
     params['train_batch_size'] = 32

@@ -1,5 +1,6 @@
 # Arabic-DID
 
+The main goal of this repository is to create
 
 ## Setting Up the Environment
 
@@ -19,13 +20,18 @@ conda activate  arabic-did
 
 - `labels` - this is the folder that contains labels space for the dialects at each level
   - `label_space.tsv` - table that contains dependency between city, province, country and region 
-
+- `data_process` - directory that contains data  processing scripts, where each file is a script for the dataset
 - `bottom_up` - if the label is at city level it will go up to country and region level using `label_space`
 - `compute_distances` - given geographical locations it will return distance between those locations
 - `data_utils` - utility functions for data it will encode those data and labels
-- `collect_data` - functions to collect data based on the training or validation and datasets
+- `data_aggregation` - functions to collect data based on the training or validation and datasets
 - `did_dataset` - helper `Dataset` object
 - `finetuning_utils` - finetuning utility functions
+- `experiment` - functions to run training and evaluating scripts
+- `run_experiment` - functions to run various experiments
+- `google_sheet_utils` - utility functions to record experimental results  into google  sheet through the google's API
+- `filter_logit` - functions to filter logit
+- `notebooks` - jupyter notebooks to experiment
   
 ## Data Processing
 ## Future Works

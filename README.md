@@ -48,14 +48,25 @@ conda activate  arabic-did
   - the further it goes away the more penalty, distance exponentially
 
 
-## Main Questions:
+## Main Questions
 
 1. Unbalanced data
 2. Not all cities available
 
-## Data Explanation:
+## Data Explanation
 1. Dev has no zagazig and giza because `ldc_callhome_arabic_trans_1997_t19`  was splitted originally
 
+## KenLM Instructions
 
+Install KenLM binary on C++  using the following commands:
+
+```
+cd
+wget -O - https://kheafield.com/code/kenlm.tar.gz |tar xz
+mkdir kenlm/build
+cd kenlm/build
+cmake ..
+make -j2
+```
 ## Training idea:
-1. Train 
+1. Use particular separate levels to have ripple carrying effect

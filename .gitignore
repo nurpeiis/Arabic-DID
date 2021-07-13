@@ -6,6 +6,8 @@
 *data_aggregated/*
 *aggregated_data/*
 *notebooks/.ipynb_checkpoints/*
+*salameh/.ipynb_checkpoints/*
+*salameh/data/*
 *models/*
 predictions_*
 *.npz

@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 
 
 def split_by_dialect(dialect_list, sentence_list):
@@ -52,4 +53,30 @@ def dialect_dict_to_lm(dialect_dict, folder):
         create_lm(f'{folder}/char/{k}.txt', f'{folder}/lm/char/{k}.arpa')
 
 
-# if __name__ == '__main__':
+def file2dialectsentence(files, level):
+    df = pd.read_csv(files[0], sep='\t', header=0)
+    for i in range(1, len(files)):
+        df = df.append(pd.read_csv(files[i], sep='\t', header=0))
+    dialect_list = df['original_sentence'].tolist()
+    sentence_list = df[f'dialect_{level}_id'].tolist()
+    return dialect_list, sentence_list
+
+
+def whole_process(level, train_files):
+
+    print('Creating list of dialects and sentences')
+    dialect_list, sentence_list = file2dialectsentence(train_files, f'{level}')
+    print('Creating dialect dictionary')
+    dialect_dict = split_by_dialect(dialect_list, sentence_list)
+    folder = f'aggregated_{level}'
+    create_directory(folder)
+    print('Putting each dialect into file')
+    dialect_dict2file(dialect_dict, folder)
+    print('Creating KenLM for each dialect')
+    dialect_dict_to_lm(dialect_dict, folder)
+    print('Finished')
+
+if __name__ == '__main__':
+    level = 'city'
+    train_files = [f'../aggregated_data/{level}_train.tsv']
+    whole_process(level, train_files)

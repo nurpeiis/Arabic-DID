@@ -52,10 +52,16 @@ ADIDA_LABELS = frozenset(['ALE', 'ALG', 'ALX', 'AMM', 'ASW', 'BAG', 'BAS',
                           'SAL', 'SAN', 'SFX', 'TRI', 'TUN'])
 
 ADIDA_LABELS_EXTRA = frozenset(['BEI', 'CAI', 'DOH', 'MSA', 'RAB', 'TUN'])
-
+AGGREGATED_LABELS_EXTRA = frozenset(['amarah-iq-gulf', 'shibin_el_kom-eg-nile_basin', 'muscat-om-gulf', 'asyut-eg-nile_basin', 'kut-iq-gulf', 'luxor-eg-nile_basin', 'hail-sa-gulf', 'kafr_el_sheikh-eg-nile_basin', 'marrakesh-ma-maghreb', 'aqaba-jo-levant', 'meknes-ma-maghreb', 'amman-jo-levant', 'bayda-ly-maghreb', 'halba-lb-levant', 'umm_al_quwain-ae-gulf', 'najaf-iq-gulf', 'hawalli-kw-gulf', 'sidon-lb-levant', 'khartoum-sd-nile_basin', 'tripoli-ly-maghreb', 'tobruk-ly-maghreb', 'annaba-dz-maghreb', 'msa-msa-msa', 'bordj_bou_arreridj-dz-maghreb', 'jijel-dz-maghreb', 'abu_dhabi-ae-gulf', 'fes-ma-maghreb', 'aleppo-sy-levant', 'suez-eg-nile_basin', 'ismailia-eg-nile_basin', 'samawah-iq-gulf', 'doha-qa-gulf', 'mansoura-eg-nile_basin', 'damascus-sy-levant', 'al_rayyan-qa-gulf', 'girga-eg-nile_basin', 'cairo-eg-nile_basin', 'buraidah-sa-gulf', 'riyadh-sa-gulf', 'karbala-iq-gulf', 'duhok-iq-gulf', 'el_arish-eg-nile_basin', 'oujda-ma-maghreb', 'aswan-eg-nile_basin', 'manama-bh-gulf', 'oran-dz-maghreb', 'jizan-sa-gulf', 'mahdia-tn-maghreb', 'jeddah-sa-gulf', 'agadir-ma-maghreb', 'beirut-lb-levant', 'tripoli-lb-levant', 'al_suwayda-sy-levant', 'tanta-eg-nile_basin', 'dammam-sa-gulf', 'mogadishu-so-gulf_aden',
+                                    'sfax-tn-maghreb', 'salalah-om-gulf', 'al_hudaydah-ye-gulf_aden', 'hurghada-eg-nile_basin', 'basra-iq-gulf', 'zagazig-eg-nile_basin', 'salt-jo-levant', 'rabat-ma-maghreb', 'sohar-om-gulf', 'abha-sa-gulf', 'fujairah-ae-gulf', 'mosul-iq-gulf', 'baghdad-iq-gulf', 'ariana-tn-maghreb', 'el_tor-eg-nile_basin', 'homs-sy-levant', 'beni_suef-eg-nile_basin', 'najran-sa-gulf', 'ramadi-iq-gulf', 'faiyum-eg-nile_basin', 'ouargla-dz-maghreb', 'ras_al_khaimah-ae-gulf', 'algiers-dz-maghreb', 'nouakchott-mr-maghreb', 'tabuk-sa-gulf', 'tunis-tn-maghreb', 'minya-eg-nile_basin', 'dhamar-ye-gulf_aden', 'sousse-tn-maghreb', 'erbil-iq-gulf', 'khasab-om-gulf', 'bouira-dz-maghreb', 'djibouti-dj-gulf_aden', 'ibb-ye-gulf_aden', 'al_madinah-sa-gulf', 'jerusalem-ps-levant', 'khenchela-dz-maghreb', 'qena-eg-nile_basin', 'jahra-kw-gulf', 'kairouan-tn-maghreb', 'damanhur-eg-nile_basin', 'alexandria-eg-nile_basin', 'port_said-eg-nile_basin', 'sanaa-ye-gulf_aden', 'dubai-ae-gulf', 'giza-eg-nile_basin', 'sulaymaniyah-iq-gulf', 'latakia-sy-levant', 'zarqa-jo-levant', 'sur-om-gulf', 'nizwa-om-gulf', 'aden-ye-gulf_aden', 'benghazi-ly-maghreb', 'bechar-dz-maghreb', 'gaza-ps-levant', 'misrata-ly-maghreb', 'tangier-ma-maghreb'])
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 _CHAR_LM_DIR = os.path.join(_DATA_DIR, 'lm', 'char')
 _WORD_LM_DIR = os.path.join(_DATA_DIR, 'lm', 'word')
+_AGGREGATED_DIR = os.path.join(os.path.dirname(__file__), 'aggregated')
+_AGGREGATED_CHAR_LM_DIR = os.path.join(_AGGREGATED_DIR, 'lm', 'char')
+_AGGREGATED_WORD_LM_DIR = os.path.join(_AGGREGATED_DIR, 'lm', 'word')
+_TRAIN_DATA_AGGREGATED_PATH = os.path.join(
+    _AGGREGATED_DIR, 'MADAR-Corpus-26-train.lines')
 _TRAIN_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_train.tsv')
 _TRAIN_DATA_EXTRA_PATH = os.path.join(_DATA_DIR, 'corpus_6_train.tsv')
 _VAL_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_val.tsv')
@@ -146,23 +152,49 @@ class DialectIdentifier(object):
 
     def __init__(self, labels=ADIDA_LABELS,
                  labels_extra=ADIDA_LABELS_EXTRA,
+                 labels_aggregated=AGGREGATED_LABELS_EXTRA,
                  char_lm_dir=None,
-                 word_lm_dir=None):
+                 word_lm_dir=None,
+                 aggregated_char_lm_dir=None,
+                 aggregated_word_lm_dir=None,):
         if char_lm_dir is None:
             char_lm_dir = _CHAR_LM_DIR
         if word_lm_dir is None:
             word_lm_dir = _WORD_LM_DIR
+        if aggregated_char_lm_dir is None:
+            aggregated_char_lm_dir = _AGGREGATED_CHAR_LM_DIR
+        if aggregated_word_lm_dir is None:
+            aggregated_word_lm_dir = _AGGREGATED_WORD_LM_DIR
 
         self._labels = labels
         self._labels_extra = labels_extra
+        self._labels_aggregated = labels_aggregated
         self._labels_sorted = sorted(labels)
         self._labels_extra_sorted = sorted(labels_extra)
+        self._labels_aggregated_sorted = sorted(labels_aggregated)
+
+        self._aggregated_char_lms = collections.defaultdict(kenlm.Model)
+        self._aggregated_word_lms = collections.defaultdict(kenlm.Model)
+        self._load_aggregated_lms(
+            aggregated_char_lm_dir, aggregated_word_lm_dir)
 
         self._char_lms = collections.defaultdict(kenlm.Model)
         self._word_lms = collections.defaultdict(kenlm.Model)
         self._load_lms(char_lm_dir, word_lm_dir)
 
         self._is_trained = False
+
+    def _load_aggregated_lms(self, char_lm_dir,  word_lm_dir):
+        config = kenlm.Config()
+        config.show_progress = False
+
+        for label in self._labels_aggregated:
+            char_lm_path = os.path.join(char_lm_dir, '{}.arpa'.format(label))
+            word_lm_path = os.path.join(word_lm_dir, '{}.arpa'.format(label))
+            self._aggregated_char_lms[label] = kenlm.Model(
+                char_lm_path, config)
+            self._aggregated_word_lms[label] = kenlm.Model(
+                word_lm_path, config)
 
     def _load_lms(self, char_lm_dir, word_lm_dir):
         config = kenlm.Config()
@@ -173,6 +205,33 @@ class DialectIdentifier(object):
             word_lm_path = os.path.join(word_lm_dir, '{}.arpa'.format(label))
             self._char_lms[label] = kenlm.Model(char_lm_path, config)
             self._word_lms[label] = kenlm.Model(word_lm_path, config)
+
+    def _get_aggregated_char_lm_scores(self, txt):
+        chars = _word_to_char(txt)
+        return np.array([self._aggregated_char_lms[label].score(chars, bos=True, eos=True)
+                         for label in self._labels_aggregated_sorted])
+
+    def _get_aggregated_word_lm_scores(self, txt):
+        return np.array([self._aggregated_word_lms[label].score(txt, bos=True, eos=True)
+                         for label in self._labels_aggregated_sorted])
+
+    def _get_aggregated_lm_feats(self, txt):
+        word_lm_scores = self._get_aggregated_word_lm_scores(
+            txt).reshape(1, -1)
+        word_lm_scores = _normalize_lm_scores(word_lm_scores)
+        char_lm_scores = self._get_aggregated_char_lm_scores(
+            txt).reshape(1, -1)
+        char_lm_scores = _normalize_lm_scores(char_lm_scores)
+        feats = np.concatenate((word_lm_scores, char_lm_scores), axis=1)
+        return feats
+
+    def _get_aggregated_lm_feats_multi(self, sentences):
+        feats_list = collections.deque()
+        for sentence in sentences:
+            feats_list.append(self._get_aggregated_lm_feats(sentence))
+        feats_matrix = np.array(feats_list)
+        feats_matrix = feats_matrix.reshape((-1, 52))
+        return feats_matrix
 
     def _get_char_lm_scores(self, txt):
         chars = _word_to_char(txt)
@@ -205,13 +264,18 @@ class DialectIdentifier(object):
         sent_array = np.array(tokenized)
         x_trans = self._feat_union.transform(sent_array)
         x_trans_extra = self._feat_union_extra.transform(sent_array)
+        x_trans_aggregated = self._feat_union_aggregated.transform(sent_array)
         x_predict_extra = self._classifier_extra.predict_proba(x_trans_extra)
+        x_predict_aggregated = self._classifier_aggregated.predict_proba(
+            x_trans_aggregated)
         x_lm_feats = self._get_lm_feats_multi(sentences)
-        x_final = sp.sparse.hstack((x_trans, x_lm_feats, x_predict_extra))
+        x_final = sp.sparse.hstack(
+            (x_trans, x_lm_feats, x_predict_extra, x_predict_aggregated))
         return x_final
 
     def train(self, data_path=None,
               data_extra_path=None,
+              data_aggregated_path=None,
               char_ngram_range=(1, 3),
               word_ngram_range=(1, 1),
               n_jobs=None):
@@ -239,15 +303,25 @@ class DialectIdentifier(object):
             data_path = _TRAIN_DATA_PATH
         if data_extra_path is None:
             data_extra_path = _TRAIN_DATA_EXTRA_PATH
+        if data_aggregated_path is None:
+            data_aggregated_path = _TRAIN_DATA_AGGREGATED_PATH
 
         # Load training data and extract
         train_data = pd.read_csv(data_path, sep='\t', index_col=0)
         train_data_extra = pd.read_csv(data_extra_path, sep='\t', index_col=0)
+        train_data_aggregated = pd.read_csv(
+            data_aggregated_path, sep='\t', header=0)
 
         x = train_data['ar'].values
         y = train_data['dialect'].values
         x_extra = train_data_extra['ar'].values
         y_extra = train_data_extra['dialect'].values
+
+        x_aggregated = train_data_aggregated['original_sentence'].values
+        cols = ['dialect_city_id', 'dialect_country_id', 'dialect_region_id']
+        train_data_aggregated['combined'] = train_data_aggregated[cols].apply(
+            lambda row: '-'.join(row.values.astype(str)), axis=1)
+        y_aggregated = train_data_aggregated['combined'].values
 
         # Build and train extra classifier
         self._label_encoder_extra = LabelEncoder()
@@ -269,6 +343,27 @@ class DialectIdentifier(object):
         self._classifier_extra = OneVsRestClassifier(MultinomialNB(),
                                                      n_jobs=n_jobs)
         self._classifier_extra.fit(x_trans, y_trans)
+
+        # Build and train aggregated classifier
+        self._label_encoder_aggregated = LabelEncoder()
+        self._label_encoder_aggregated.fit(y_aggregated)
+        y_trans = self._label_encoder_aggregated.transform(y_aggregated)
+
+        word_vectorizer = TfidfVectorizer(lowercase=False,
+                                          ngram_range=word_ngram_range,
+                                          analyzer='word',
+                                          tokenizer=lambda x: x.split(' '))
+        char_vectorizer = TfidfVectorizer(lowercase=False,
+                                          ngram_range=char_ngram_range,
+                                          analyzer='char',
+                                          tokenizer=lambda x: x.split(' '))
+        self._feat_union_aggregated = FeatureUnion([('wordgrams', word_vectorizer),
+                                                    ('chargrams', char_vectorizer)])
+        x_trans = self._feat_union_aggregated.fit_transform(x_aggregated)
+
+        self._classifier_aggregated = OneVsRestClassifier(MultinomialNB(),
+                                                          n_jobs=n_jobs)
+        self._classifier_aggregated.fit(x_trans, y_trans)
 
         # Build and train main classifier
         self._label_encoder = LabelEncoder()

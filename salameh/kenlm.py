@@ -74,7 +74,7 @@ def file2dialectsentence(files, level):
 
 
 def whole_process(level, train_files):
-
+    start = timeit.default_timer()
     print('Creating list of dialects and sentences')
     dialect_list, sentence_list = file2dialectsentence(train_files, f'{level}')
     print('Creating dialect dictionary')
@@ -85,7 +85,8 @@ def whole_process(level, train_files):
     dialect_dict2file(dialect_dict, folder)
     print('Creating KenLM for each dialect')
     dialect_dict_to_lm(dialect_dict, folder)
-    print('Finished')
+    end = timeit.default_timer()
+    print('Finished in ', start - end)
 
 
 if __name__ == '__main__':

@@ -57,8 +57,8 @@ def file2dialectsentence(files, level):
     df = pd.read_csv(files[0], sep='\t', header=0)
     for i in range(1, len(files)):
         df = df.append(pd.read_csv(files[i], sep='\t', header=0))
-    dialect_list = df['original_sentence'].tolist()
-    sentence_list = df[f'dialect_{level}_id'].tolist()
+    sentence_list = df['original_sentence'].tolist()
+    dialect_list = df[f'dialect_{level}_id'].tolist()
     return dialect_list, sentence_list
 
 
@@ -75,6 +75,7 @@ def whole_process(level, train_files):
     print('Creating KenLM for each dialect')
     dialect_dict_to_lm(dialect_dict, folder)
     print('Finished')
+
 
 if __name__ == '__main__':
     level = 'city'

@@ -1,4 +1,5 @@
 import os
+import timeit
 import pandas as pd
 
 
@@ -58,7 +59,17 @@ def file2dialectsentence(files, level):
     for i in range(1, len(files)):
         df = df.append(pd.read_csv(files[i], sep='\t', header=0))
     sentence_list = df['original_sentence'].tolist()
-    dialect_list = df[f'dialect_{level}_id'].tolist()
+    cols = []
+    if level == 'city':
+        cols = ['dialect_city_id', 'dialect_country_id', 'dialect_region_id']
+    elif level == 'country':
+        cols = ['dialect_country_id', 'dialect_region_id']
+    elif level == 'region':
+        cols = ['dialect_region_id']
+    df['combined'] = df[cols].apply(
+        lambda row: '-'.join(row.values.astype(str)), axis=1)
+
+    dialect_list = df['combined'].tolist()
     return dialect_list, sentence_list
 
 

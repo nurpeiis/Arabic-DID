@@ -57,11 +57,11 @@ AGGREGATED_LABELS_EXTRA = frozenset(['amarah-iq-gulf', 'shibin_el_kom-eg-nile_ba
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 _CHAR_LM_DIR = os.path.join(_DATA_DIR, 'lm', 'char')
 _WORD_LM_DIR = os.path.join(_DATA_DIR, 'lm', 'word')
-_AGGREGATED_DIR = os.path.join(os.path.dirname(__file__), 'aggregated')
+_AGGREGATED_DIR = os.path.join(os.path.dirname(__file__), 'aggregated_city')
 _AGGREGATED_CHAR_LM_DIR = os.path.join(_AGGREGATED_DIR, 'lm', 'char')
 _AGGREGATED_WORD_LM_DIR = os.path.join(_AGGREGATED_DIR, 'lm', 'word')
 _TRAIN_DATA_AGGREGATED_PATH = os.path.join(
-    _AGGREGATED_DIR, 'MADAR-Corpus-26-train.lines')
+    _AGGREGATED_DIR, 'city_train.tsv')
 _TRAIN_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_train.tsv')
 _TRAIN_DATA_EXTRA_PATH = os.path.join(_DATA_DIR, 'corpus_6_train.tsv')
 _VAL_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_val.tsv')
@@ -173,14 +173,14 @@ class DialectIdentifier(object):
         self._labels_extra_sorted = sorted(labels_extra)
         self._labels_aggregated_sorted = sorted(labels_aggregated)
 
+        self._char_lms = collections.defaultdict(kenlm.Model)
+        self._word_lms = collections.defaultdict(kenlm.Model)
+        self._load_lms(char_lm_dir, word_lm_dir)
+
         self._aggregated_char_lms = collections.defaultdict(kenlm.Model)
         self._aggregated_word_lms = collections.defaultdict(kenlm.Model)
         self._load_aggregated_lms(
             aggregated_char_lm_dir, aggregated_word_lm_dir)
-
-        self._char_lms = collections.defaultdict(kenlm.Model)
-        self._word_lms = collections.defaultdict(kenlm.Model)
-        self._load_lms(char_lm_dir, word_lm_dir)
 
         self._is_trained = False
 

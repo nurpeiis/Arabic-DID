@@ -90,6 +90,6 @@ def whole_process(level, train_files):
 
 
 if __name__ == '__main__':
-    level = 'city'
+    level = 'country'
     train_files = [f'../aggregated_data/{level}_train.tsv']
     whole_process(level, train_files)

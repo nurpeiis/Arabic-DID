@@ -68,7 +68,47 @@ cd kenlm/build
 cmake ..
 make -j2
 ```
+
+To install python package run following command:
+
+`pip install https://github.com/kpu/kenlm/archive/master.zip`
+## Running on Greene HPC
+
+1. Make sure to activate conda env
+   ```
+   source $SCRATCH/miniconda3/bin/activate
+   conda activate name_env (mllu right now)
+   ```
+2. Then install all package dependencies
+## Results
+
+1. Salameh
+```
+{'accuracy': 0.6765384615384615, 'f1_micro': 0.6765384615384615, 'f1_macro': 0.6779509849008464, 'recall_micro': 0.6765384615384615, 'recall_macro': 0.6765384615384615, 'precision_micro': 0.6765384615384615, 'precision_macro': 0.6836726852465969}
+```
+2. Salameh + aggregated_city on aggregated_city:
+```
+{'accuracy': 0.6759615384615385, 'f1_micro': 0.6759615384615385, 'f1_macro': 0.6771667896947418, 'recall_micro': 0.6759615384615385, 'recall_macro': 0.6759615384615384, 'precision_micro': 0.6759615384615385, 'precision_macro': 0.6826720348902401}
+```
+3. Salameh + aggregated_city on madar 26:
+```
+{'accuracy': 0.68, 'f1_micro': 0.68, 'f1_macro': 0.6814004149650975, 'recall_micro': 0.68, 'recall_macro': 0.6800000000000002, 'precision_micro': 0.68, 'precision_macro': 0.687314065312601}
+``` 
+                                       
 ## Training idea:
 1. Use particular separate levels to have ripple carrying effect
 2. Salameh + then gradually add data
 3. for every input repeat the sequence twice or n number of times to see how it affects the signal 
+
+## Evaluation:
+- Evaluate at country & region level, i.e. even if city level increases by 0.3%, there might be larger increase at higher levels 
+- Have 113 evaluation too, potentially significantly lower, but  higher level label is better
+- Statistical significance TODO: MUST READ ABOUT HOW THIS IS DONE
+  - Look into T-test in particular
+  - Find p value
+  - How two sets are different, predictions of two different models
+  - https://statisticsbyjim.com/hypothesis-testing/comparing-hypothesis-tests-data-types/
+- Divide datasets by annotation type.
+  - Madar extra vs All other city level data
+
+-  Generate table data with all variables

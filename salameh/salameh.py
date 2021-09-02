@@ -44,7 +44,7 @@ from sklearn.metrics import accuracy_score, f1_score, recall_score
 from sklearn.metrics import precision_score
 from camel_tools.tokenizers.word import simple_word_tokenize
 from camel_tools.utils.dediac import dediac_ar
-from layer import LayerObject
+from utils import LayerObject
 
 ADIDA_LABELS = frozenset(['ALE', 'ALG', 'ALX', 'AMM', 'ASW', 'BAG', 'BAS',
                           'BEI', 'BEN', 'CAI', 'DAM', 'DOH', 'FES', 'JED',
@@ -69,8 +69,11 @@ _TRAIN_DATA_EXTRA_PATH = os.path.join(_DATA_DIR, 'corpus_6_train.tsv')
 _VAL_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_val.tsv')
 _TEST_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_test.tsv')
 
-city_layer = LayerObject(frozenset(['amarah-iq-gulf', 'shibin_el_kom-eg-nile_basin', 'muscat-om-gulf', 'asyut-eg-nile_basin', 'kut-iq-gulf', 'luxor-eg-nile_basin', 'hail-sa-gulf', 'kafr_el_sheikh-eg-nile_basin', 'marrakesh-ma-maghreb', 'aqaba-jo-levant', 'meknes-ma-maghreb', 'amman-jo-levant', 'bayda-ly-maghreb', 'halba-lb-levant', 'umm_al_quwain-ae-gulf', 'najaf-iq-gulf', 'hawalli-kw-gulf', 'sidon-lb-levant', 'khartoum-sd-nile_basin', 'tripoli-ly-maghreb', 'tobruk-ly-maghreb', 'annaba-dz-maghreb', 'msa-msa-msa', 'bordj_bou_arreridj-dz-maghreb', 'jijel-dz-maghreb', 'abu_dhabi-ae-gulf', 'fes-ma-maghreb', 'aleppo-sy-levant', 'suez-eg-nile_basin', 'ismailia-eg-nile_basin', 'samawah-iq-gulf', 'doha-qa-gulf', 'mansoura-eg-nile_basin', 'damascus-sy-levant', 'al_rayyan-qa-gulf', 'girga-eg-nile_basin', 'cairo-eg-nile_basin', 'buraidah-sa-gulf', 'riyadh-sa-gulf', 'karbala-iq-gulf', 'duhok-iq-gulf', 'el_arish-eg-nile_basin', 'oujda-ma-maghreb', 'aswan-eg-nile_basin', 'manama-bh-gulf', 'oran-dz-maghreb', 'jizan-sa-gulf', 'mahdia-tn-maghreb', 'jeddah-sa-gulf', 'agadir-ma-maghreb', 'beirut-lb-levant', 'tripoli-lb-levant', 'al_suwayda-sy-levant', 'tanta-eg-nile_basin', 'dammam-sa-gulf', 'mogadishu-so-gulf_aden', 'sfax-tn-maghreb', 'salalah-om-gulf', 'al_hudaydah-ye-gulf_aden', 'hurghada-eg-nile_basin', 'basra-iq-gulf', 'zagazig-eg-nile_basin', 'salt-jo-levant', 'rabat-ma-maghreb', 'sohar-om-gulf', 'abha-sa-gulf', 'fujairah-ae-gulf', 'mosul-iq-gulf', 'baghdad-iq-gulf', 'ariana-tn-maghreb', 'el_tor-eg-nile_basin', 'homs-sy-levant', 'beni_suef-eg-nile_basin', 'najran-sa-gulf', 'ramadi-iq-gulf', 'faiyum-eg-nile_basin', 'ouargla-dz-maghreb', 'ras_al_khaimah-ae-gulf', 'algiers-dz-maghreb', 'nouakchott-mr-maghreb', 'tabuk-sa-gulf', 'tunis-tn-maghreb', 'minya-eg-nile_basin', 'dhamar-ye-gulf_aden', 'sousse-tn-maghreb', 'erbil-iq-gulf', 'khasab-om-gulf', 'bouira-dz-maghreb', 'djibouti-dj-gulf_aden', 'ibb-ye-gulf_aden', 'al_madinah-sa-gulf', 'jerusalem-ps-levant', 'khenchela-dz-maghreb', 'qena-eg-nile_basin', 'jahra-kw-gulf', 'kairouan-tn-maghreb', 'damanhur-eg-nile_basin', 'alexandria-eg-nile_basin', 'port_said-eg-nile_basin', 'sanaa-ye-gulf_aden', 'dubai-ae-gulf', 'giza-eg-nile_basin', 'sulaymaniyah-iq-gulf', 'latakia-sy-levant', 'zarqa-jo-levant', 'sur-om-gulf', 'nizwa-om-gulf', 'aden-ye-gulf_aden', 'benghazi-ly-maghreb', 'bechar-dz-maghreb', 'gaza-ps-levant', 'misrata-ly-maghreb', 'tangier-ma-maghreb'])
-                         )
+
+city_layer = LayerObject(frozenset(['amarah-iq-gulf', 'shibin_el_kom-eg-nile_basin', 'muscat-om-gulf', 'asyut-eg-nile_basin', 'kut-iq-gulf', 'luxor-eg-nile_basin', 'hail-sa-gulf', 'kafr_el_sheikh-eg-nile_basin', 'marrakesh-ma-maghreb', 'aqaba-jo-levant', 'meknes-ma-maghreb', 'amman-jo-levant', 'bayda-ly-maghreb', 'halba-lb-levant', 'umm_al_quwain-ae-gulf', 'najaf-iq-gulf', 'hawalli-kw-gulf', 'sidon-lb-levant', 'khartoum-sd-nile_basin', 'tripoli-ly-maghreb', 'tobruk-ly-maghreb', 'annaba-dz-maghreb', 'msa-msa-msa', 'bordj_bou_arreridj-dz-maghreb', 'jijel-dz-maghreb', 'abu_dhabi-ae-gulf', 'fes-ma-maghreb', 'aleppo-sy-levant', 'suez-eg-nile_basin', 'ismailia-eg-nile_basin', 'samawah-iq-gulf', 'doha-qa-gulf', 'mansoura-eg-nile_basin', 'damascus-sy-levant', 'al_rayyan-qa-gulf', 'girga-eg-nile_basin', 'cairo-eg-nile_basin', 'buraidah-sa-gulf', 'riyadh-sa-gulf', 'karbala-iq-gulf', 'duhok-iq-gulf', 'el_arish-eg-nile_basin', 'oujda-ma-maghreb', 'aswan-eg-nile_basin', 'manama-bh-gulf', 'oran-dz-maghreb', 'jizan-sa-gulf', 'mahdia-tn-maghreb', 'jeddah-sa-gulf', 'agadir-ma-maghreb', 'beirut-lb-levant', 'tripoli-lb-levant', 'al_suwayda-sy-levant', 'tanta-eg-nile_basin', 'dammam-sa-gulf', 'mogadishu-so-gulf_aden', 'sfax-tn-maghreb', 'salalah-om-gulf', 'al_hudaydah-ye-gulf_aden', 'hurghada-eg-nile_basin', 'basra-iq-gulf', 'zagazig-eg-nile_basin', 'salt-jo-levant', 'rabat-ma-maghreb', 'sohar-om-gulf', 'abha-sa-gulf', 'fujairah-ae-gulf', 'mosul-iq-gulf', 'baghdad-iq-gulf', 'ariana-tn-maghreb', 'el_tor-eg-nile_basin', 'homs-sy-levant', 'beni_suef-eg-nile_basin', 'najran-sa-gulf', 'ramadi-iq-gulf', 'faiyum-eg-nile_basin', 'ouargla-dz-maghreb', 'ras_al_khaimah-ae-gulf', 'algiers-dz-maghreb', 'nouakchott-mr-maghreb', 'tabuk-sa-gulf', 'tunis-tn-maghreb', 'minya-eg-nile_basin', 'dhamar-ye-gulf_aden', 'sousse-tn-maghreb', 'erbil-iq-gulf', 'khasab-om-gulf', 'bouira-dz-maghreb', 'djibouti-dj-gulf_aden', 'ibb-ye-gulf_aden', 'al_madinah-sa-gulf', 'jerusalem-ps-levant', 'khenchela-dz-maghreb', 'qena-eg-nile_basin', 'jahra-kw-gulf', 'kairouan-tn-maghreb', 'damanhur-eg-nile_basin', 'alexandria-eg-nile_basin', 'port_said-eg-nile_basin', 'sanaa-ye-gulf_aden', 'dubai-ae-gulf', 'giza-eg-nile_basin', 'sulaymaniyah-iq-gulf', 'latakia-sy-levant', 'zarqa-jo-levant', 'sur-om-gulf', 'nizwa-om-gulf', 'aden-ye-gulf_aden', 'benghazi-ly-maghreb', 'bechar-dz-maghreb', 'gaza-ps-levant', 'misrata-ly-maghreb', 'tangier-ma-maghreb']),
+                         'aggregated_city', )
+
+AGGREGATED_LAYERS = [city_layer]
 
 
 class DIDPred(collections.namedtuple('DIDPred', ['top', 'scores'])):
@@ -160,16 +163,17 @@ class DialectIdentifier(object):
                  labels_aggregated=AGGREGATED_LABELS_EXTRA,
                  char_lm_dir=None,
                  word_lm_dir=None,
-                 aggregated_char_lm_dir=None,
+                 aggregated_layers=None,
                  aggregated_word_lm_dir=None,):
         if char_lm_dir is None:
             char_lm_dir = _CHAR_LM_DIR
         if word_lm_dir is None:
             word_lm_dir = _WORD_LM_DIR
-        if aggregated_char_lm_dir is None:
-            aggregated_char_lm_dir = _AGGREGATED_CHAR_LM_DIR
-        if aggregated_word_lm_dir is None:
-            aggregated_word_lm_dir = _AGGREGATED_WORD_LM_DIR
+        if aggregated_layers is None:
+            aggregated_layers = _AGGREGATED_CHAR_LM_DIR
+
+        # aggregated layer
+        self._aggregated_layers = aggregated_layers
 
         self._labels = labels
         self._labels_extra = labels_extra

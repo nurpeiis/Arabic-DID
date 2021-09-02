@@ -1,6 +1,66 @@
 import os
+import kenlm
 import timeit
 import pandas as pd
+import collections
+
+
+class LayerObject:
+
+    def __init__(self, level, kenlm_train, kenlm_train_files, exclude_list, train_path, test_path, val_path):
+
+        self.data_dir = os.path.join(
+            os.path.dirname(__file__), f'aggregated_{level}')
+        self.kenlm_train = kenlm_train
+        self.kenlm_train_files = kenlm_train_files
+
+        # kenlm was not trained yet or we would like to train from scratch
+        if not os.path.exists(self.data_dir) or self.kenlm_train:
+            self.kenlm_process()
+
+        self.char_lm_dir = os.path.join(self.data_dir, 'lm', 'char')
+        self.word_lm_dir = os.path.join(self.data_dir, 'lm', 'word')
+        self.get_labels()
+        self._char_lms = collections.defaultdict(kenlm.Model)
+        self._word_lms = collections.defaultdict(kenlm.Model)
+        self.load_lms()
+
+        self.train_path = train_path
+        self.test_path = test_path
+        self.val_path = val_path
+
+    def get_labels(self):
+        self.labels = [i[:-5]
+                       for i in os.listdir(self.char_lm_dir) if i[-4:] == 'arpa']
+
+    def kenlm_process(self):
+        start = timeit.default_timer()
+        print('Creating list of dialects and sentences')
+        dialect_list, sentence_list = file2dialectsentence(
+            self.kenlm_train_files, f'{self.level}')
+        print('Creating dialect dictionary')
+        dialect_dict = split_by_dialect(dialect_list, sentence_list)
+        create_directory(self.data_dir)
+        print('Putting each dialect into file')
+        dialect_dict2file(dialect_dict, self.data_dir)
+        print('Creating KenLM for each dialect')
+        dialect_dict_to_lm(dialect_dict, self.data_dir)
+        end = timeit.default_timer()
+        print('Finished creating KenLM models in ', end - start)
+
+    def load_lms(self):
+        config = kenlm.Config()
+        config.show_progress = False
+
+        for label in self.labels:
+            char_lm_path = os.path.join(
+                self.char_lm_dir, '{}.arpa'.format(label))
+            word_lm_path = os.path.join(
+                self.word_lm_dir, '{}.arpa'.format(label))
+            self.char_lms[label] = kenlm.Model(
+                char_lm_path, config)
+            self.word_lms[label] = kenlm.Model(
+                word_lm_path, config)
 
 
 def split_by_dialect(dialect_list, sentence_list):
@@ -86,7 +146,7 @@ def whole_process(level, train_files):
     print('Creating KenLM for each dialect')
     dialect_dict_to_lm(dialect_dict, folder)
     end = timeit.default_timer()
-    print('Finished in ', start - end)
+    print('Finished in ', end - start)
 
 
 if __name__ == '__main__':

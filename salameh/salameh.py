@@ -70,10 +70,10 @@ _VAL_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_val.tsv')
 _TEST_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_test.tsv')
 
 
-city_layer = LayerObject(frozenset(['amarah-iq-gulf', 'shibin_el_kom-eg-nile_basin', 'muscat-om-gulf', 'asyut-eg-nile_basin', 'kut-iq-gulf', 'luxor-eg-nile_basin', 'hail-sa-gulf', 'kafr_el_sheikh-eg-nile_basin', 'marrakesh-ma-maghreb', 'aqaba-jo-levant', 'meknes-ma-maghreb', 'amman-jo-levant', 'bayda-ly-maghreb', 'halba-lb-levant', 'umm_al_quwain-ae-gulf', 'najaf-iq-gulf', 'hawalli-kw-gulf', 'sidon-lb-levant', 'khartoum-sd-nile_basin', 'tripoli-ly-maghreb', 'tobruk-ly-maghreb', 'annaba-dz-maghreb', 'msa-msa-msa', 'bordj_bou_arreridj-dz-maghreb', 'jijel-dz-maghreb', 'abu_dhabi-ae-gulf', 'fes-ma-maghreb', 'aleppo-sy-levant', 'suez-eg-nile_basin', 'ismailia-eg-nile_basin', 'samawah-iq-gulf', 'doha-qa-gulf', 'mansoura-eg-nile_basin', 'damascus-sy-levant', 'al_rayyan-qa-gulf', 'girga-eg-nile_basin', 'cairo-eg-nile_basin', 'buraidah-sa-gulf', 'riyadh-sa-gulf', 'karbala-iq-gulf', 'duhok-iq-gulf', 'el_arish-eg-nile_basin', 'oujda-ma-maghreb', 'aswan-eg-nile_basin', 'manama-bh-gulf', 'oran-dz-maghreb', 'jizan-sa-gulf', 'mahdia-tn-maghreb', 'jeddah-sa-gulf', 'agadir-ma-maghreb', 'beirut-lb-levant', 'tripoli-lb-levant', 'al_suwayda-sy-levant', 'tanta-eg-nile_basin', 'dammam-sa-gulf', 'mogadishu-so-gulf_aden', 'sfax-tn-maghreb', 'salalah-om-gulf', 'al_hudaydah-ye-gulf_aden', 'hurghada-eg-nile_basin', 'basra-iq-gulf', 'zagazig-eg-nile_basin', 'salt-jo-levant', 'rabat-ma-maghreb', 'sohar-om-gulf', 'abha-sa-gulf', 'fujairah-ae-gulf', 'mosul-iq-gulf', 'baghdad-iq-gulf', 'ariana-tn-maghreb', 'el_tor-eg-nile_basin', 'homs-sy-levant', 'beni_suef-eg-nile_basin', 'najran-sa-gulf', 'ramadi-iq-gulf', 'faiyum-eg-nile_basin', 'ouargla-dz-maghreb', 'ras_al_khaimah-ae-gulf', 'algiers-dz-maghreb', 'nouakchott-mr-maghreb', 'tabuk-sa-gulf', 'tunis-tn-maghreb', 'minya-eg-nile_basin', 'dhamar-ye-gulf_aden', 'sousse-tn-maghreb', 'erbil-iq-gulf', 'khasab-om-gulf', 'bouira-dz-maghreb', 'djibouti-dj-gulf_aden', 'ibb-ye-gulf_aden', 'al_madinah-sa-gulf', 'jerusalem-ps-levant', 'khenchela-dz-maghreb', 'qena-eg-nile_basin', 'jahra-kw-gulf', 'kairouan-tn-maghreb', 'damanhur-eg-nile_basin', 'alexandria-eg-nile_basin', 'port_said-eg-nile_basin', 'sanaa-ye-gulf_aden', 'dubai-ae-gulf', 'giza-eg-nile_basin', 'sulaymaniyah-iq-gulf', 'latakia-sy-levant', 'zarqa-jo-levant', 'sur-om-gulf', 'nizwa-om-gulf', 'aden-ye-gulf_aden', 'benghazi-ly-maghreb', 'bechar-dz-maghreb', 'gaza-ps-levant', 'misrata-ly-maghreb', 'tangier-ma-maghreb']),
-                         'aggregated_city', )
+city_layer = LayerObject()
+country_layer = LayerObject()
 
-AGGREGATED_LAYERS = [city_layer]
+AGGREGATED_LAYERS = [city_layer, country_layer]
 
 
 class DIDPred(collections.namedtuple('DIDPred', ['top', 'scores'])):
@@ -180,30 +180,12 @@ class DialectIdentifier(object):
         self._labels_aggregated = labels_aggregated
         self._labels_sorted = sorted(labels)
         self._labels_extra_sorted = sorted(labels_extra)
-        self._labels_aggregated_sorted = sorted(labels_aggregated)
 
         self._char_lms = collections.defaultdict(kenlm.Model)
         self._word_lms = collections.defaultdict(kenlm.Model)
         self._load_lms(char_lm_dir, word_lm_dir)
 
-        self._aggregated_char_lms = collections.defaultdict(kenlm.Model)
-        self._aggregated_word_lms = collections.defaultdict(kenlm.Model)
-        self._load_aggregated_lms(
-            aggregated_char_lm_dir, aggregated_word_lm_dir)
-
         self._is_trained = False
-
-    def _load_aggregated_lms(self, char_lm_dir,  word_lm_dir):
-        config = kenlm.Config()
-        config.show_progress = False
-
-        for label in self._labels_aggregated:
-            char_lm_path = os.path.join(char_lm_dir, '{}.arpa'.format(label))
-            word_lm_path = os.path.join(word_lm_dir, '{}.arpa'.format(label))
-            self._aggregated_char_lms[label] = kenlm.Model(
-                char_lm_path, config)
-            self._aggregated_word_lms[label] = kenlm.Model(
-                word_lm_path, config)
 
     def _load_lms(self, char_lm_dir, word_lm_dir):
         config = kenlm.Config()

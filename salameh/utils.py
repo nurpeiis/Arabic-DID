@@ -13,6 +13,7 @@ class LayerObject:
             os.path.dirname(__file__), f'aggregated_{level}')
         self.kenlm_train = kenlm_train
         self.kenlm_train_files = kenlm_train_files
+        self.exclude_list = exclude_list
 
         # kenlm was not trained yet or we would like to train from scratch
         if not os.path.exists(self.data_dir) or self.kenlm_train:
@@ -30,8 +31,8 @@ class LayerObject:
         self.val_path = val_path
 
     def get_labels(self):
-        self.labels = [i[:-5]
-                       for i in os.listdir(self.char_lm_dir) if i[-4:] == 'arpa']
+        self.labels = sorted([i[:-5]
+                              for i in os.listdir(self.char_lm_dir) if i[-4:] == 'arpa' and i[:-5] not in self.exclude_list])
 
     def kenlm_process(self):
         start = timeit.default_timer()

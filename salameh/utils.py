@@ -1,16 +1,25 @@
 import os
 import kenlm
 import timeit
+import numpy as np
 import pandas as pd
 import collections
+import scipy as sp
+from sklearn.pipeline import FeatureUnion
+from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.preprocessing import normalize
 
 
 class LayerObject:
 
     def __init__(self, level, kenlm_train, kenlm_train_files, exclude_list, train_path, test_path, val_path):
 
+        self.level = level
         self.data_dir = os.path.join(
-            os.path.dirname(__file__), f'aggregated_{level}')
+            os.path.dirname(__file__), f'aggregated_{self.level}')
         self.kenlm_train = kenlm_train
         self.kenlm_train_files = kenlm_train_files
         self.exclude_list = exclude_list
@@ -21,9 +30,10 @@ class LayerObject:
 
         self.char_lm_dir = os.path.join(self.data_dir, 'lm', 'char')
         self.word_lm_dir = os.path.join(self.data_dir, 'lm', 'word')
+        self.labels = []
         self.get_labels()
-        self._char_lms = collections.defaultdict(kenlm.Model)
-        self._word_lms = collections.defaultdict(kenlm.Model)
+        self.char_lms = collections.defaultdict(kenlm.Model)
+        self.word_lms = collections.defaultdict(kenlm.Model)
         self.load_lms()
 
         self.train_path = train_path
@@ -63,11 +73,90 @@ class LayerObject:
             self.word_lms[label] = kenlm.Model(
                 word_lm_path, config)
 
+    def _get_char_lm_scores(self, txt):
+        chars = word_to_char(txt)
+        return np.array([self.char_lms[label].score(chars, bos=True, eos=True)
+                         for label in self.labels])
+
+    def _get_word_lm_scores(self, txt):
+        return np.array([self.word_lms[label].score(txt, bos=True, eos=True)
+                         for label in self.labels])
+
+    def _get_lm_feats(self, txt):
+        word_lm_scores = self._get_word_lm_scores(
+            txt).reshape(1, -1)
+        word_lm_scores = normalize_lm_scores(word_lm_scores)
+        char_lm_scores = self._get_char_lm_scores(
+            txt).reshape(1, -1)
+        char_lm_scores = normalize_lm_scores(char_lm_scores)
+        feats = np.concatenate((word_lm_scores, char_lm_scores), axis=1)
+        return feats
+
+    def get_lm_feats_multi(self, sentences):
+        feats_list = collections.deque()
+        for sentence in sentences:
+            feats_list.append(self._get_lm_feats(sentence))
+        feats_matrix = np.array(feats_list)
+        # print(feats_matrix.shape)
+        feats_matrix = feats_matrix.reshape((-1, len(self.labels)*2))
+        # print(feats_matrix.shape)
+        return feats_matrix
+
+    def train(self, df, cols_train=['dialect_city_id', 'dialect_country_id', 'dialect_region_id']):
+        n_jobs = None
+        char_ngram_range = (1, 3)
+        word_ngram_range = (1, 1)
+
+        sentences = df['original_sentence'].values
+        #cols = ['dialect_city_id', 'dialect_country_id', 'dialect_region_id']
+        df['combined'] = df[cols_train].apply(
+            lambda row: '-'.join(row.values.astype(str)), axis=1)
+        y = df['combined'].values
+
+        # Build and train aggregated classifier
+        self.label_encoder = LabelEncoder()
+        self.label_encoder.fit(y)
+        y_trans = self.label_encoder.transform(y)
+
+        word_vectorizer = TfidfVectorizer(lowercase=False,
+                                          ngram_range=word_ngram_range,
+                                          analyzer='word',
+                                          tokenizer=lambda x: x.split(' '))
+        char_vectorizer = TfidfVectorizer(lowercase=False,
+                                          ngram_range=char_ngram_range,
+                                          analyzer='char',
+                                          tokenizer=lambda x: x.split(' '))
+        self.feat_union = FeatureUnion([('wordgrams', word_vectorizer),
+                                        ('chargrams', char_vectorizer)])
+        x_trans = self.feat_union.fit_transform(sentences)
+        x_lm_feats = self.get_lm_feats_multi(sentences)
+        x_final = sp.sparse.hstack(
+            (x_trans, x_lm_feats))
+        self.classifier = OneVsRestClassifier(MultinomialNB(),
+                                              n_jobs=n_jobs)
+        self.classifier.fit(x_final, y_trans)
+
+    def predict_proba_lm_feats(self, sentences):
+        x_trans = self.feat_union.fit_transform(sentences)
+        x_lm_feats = self.get_lm_feats_multi(sentences)
+        x_final = sp.sparse.hstack(
+            (x_trans, x_lm_feats))
+
+        prob_distr = self.classifier.predict_proba(x_final)
+
+        return prob_distr, x_lm_feats
+
+
+def normalize_lm_scores(scores):
+    norm_scores = np.exp(scores)
+    norm_scores = normalize(norm_scores)
+    return norm_scores
+
 
 def split_by_dialect(dialect_list, sentence_list):
     char_list = []
     for s in sentence_list:
-        s = ' '.join(list(s.replace(' ', 'X')))
+        s = word_to_char(s)
         char_list.append(s)
     dialect_dict = dict()
     for i in range(len(char_list)):
@@ -101,7 +190,9 @@ def dialect_dict2file(dialect_dict, folder):
 
 
 def create_lm(in_file, out_file):
-    command = f'~/kenlm/build/bin/lmplz -o 5 < {in_file} > {out_file} --discount_fallback'
+    location_hpc = '/scratch/nb2577/usr/lib/kenlm/build/bin/lmplz'
+    location_pc = '~/kenlm/build/bin/lmplz'
+    command = f'{location_pc} -o 5 < {in_file} > {out_file} --discount_fallback'
     os.system(command)
 
 
@@ -113,6 +204,10 @@ def dialect_dict_to_lm(dialect_dict, folder):
     for k in dialect_dict.keys():
         create_lm(f'{folder}/word/{k}.txt', f'{folder}/lm/word/{k}.arpa')
         create_lm(f'{folder}/char/{k}.txt', f'{folder}/lm/char/{k}.arpa')
+
+
+def word_to_char(txt):
+    return ' '.join(list(txt.replace(' ', 'X')))
 
 
 def file2dialectsentence(files, level):
@@ -151,6 +246,13 @@ def whole_process(level, train_files):
 
 
 if __name__ == '__main__':
-    level = 'country'
-    train_files = [f'../aggregated_data/{level}_train.tsv']
-    whole_process(level, train_files)
+    level = 'city'
+    train_files = [f'../aggregated_data/{level}_dev.tsv']
+    #whole_process(level, train_files)
+
+    city_layer = LayerObject('city', False, train_files,
+                             [], 'aggregate_city/MADAR-Corpus-26-train.lines', None, None)
+
+    df = pd.read_csv(
+        'aggregated_country/MADAR-Corpus-26-train.lines', sep='\t', header=0)
+    city_layer.train(df)

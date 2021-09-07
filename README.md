@@ -94,6 +94,11 @@ To install python package run following command:
 ```
 {'accuracy': 0.68, 'f1_micro': 0.68, 'f1_macro': 0.6814004149650975, 'recall_micro': 0.68, 'recall_macro': 0.6800000000000002, 'precision_micro': 0.68, 'precision_macro': 0.687314065312601}
 ``` 
+
+4. Salameh but use proper char division as lamda function:
+```
+{'accuracy': 0.6765384615384615, 'f1_micro': 0.6765384615384615, 'f1_macro': 0.6779509849008464, 'recall_micro': 0.6765384615384615, 'recall_macro': 0.6765384615384615, 'precision_micro': 0.6765384615384615, 'precision_macro': 0.6836726852465969}
+```
                                        
 ## Training idea:
 1. Use particular separate levels to have ripple carrying effect

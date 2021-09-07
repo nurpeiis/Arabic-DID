@@ -59,21 +59,24 @@ AGGREGATED_LABELS_EXTRA = frozenset(['ma-maghreb', 'bh-gulf', 'msa-msa', 'tn-mag
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 _CHAR_LM_DIR = os.path.join(_DATA_DIR, 'lm', 'char')
 _WORD_LM_DIR = os.path.join(_DATA_DIR, 'lm', 'word')
-_AGGREGATED_DIR = os.path.join(os.path.dirname(__file__), 'aggregated_country')
-_AGGREGATED_CHAR_LM_DIR = os.path.join(_AGGREGATED_DIR, 'lm', 'char')
-_AGGREGATED_WORD_LM_DIR = os.path.join(_AGGREGATED_DIR, 'lm', 'word')
-_TRAIN_DATA_AGGREGATED_PATH = os.path.join(
-    _AGGREGATED_DIR, 'MADAR-Corpus-26-train.lines')
+
+_TRAIN_DATA_AGGREGATED_PATH = 'aggregated_city/MADAR-Corpus-26-train.lines'
 _TRAIN_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_train.tsv')
 _TRAIN_DATA_EXTRA_PATH = os.path.join(_DATA_DIR, 'corpus_6_train.tsv')
 _VAL_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_val.tsv')
 _TEST_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_test.tsv')
 
 
-city_layer = LayerObject()
-country_layer = LayerObject()
+#city_layer = LayerObject()
+#country_layer = LayerObject()
+#whole_process(level, train_files)
 
-AGGREGATED_LAYERS = [city_layer, country_layer]
+
+city_layer = LayerObject('city', False, ['../aggregated_data/city_train.tsv'],
+                         [], _TRAIN_DATA_AGGREGATED_PATH, None, None)
+# country_layer = LayerObject('country', False, ['../aggregated_data/country_train.tsv'],
+#                            [], _TRAIN_DATA_AGGREGATED_PATH, None, None)
+AGGREGATED_LAYERS = [city_layer]
 
 
 class DIDPred(collections.namedtuple('DIDPred', ['top', 'scores'])):
@@ -163,14 +166,13 @@ class DialectIdentifier(object):
                  labels_aggregated=AGGREGATED_LABELS_EXTRA,
                  char_lm_dir=None,
                  word_lm_dir=None,
-                 aggregated_layers=None,
-                 aggregated_word_lm_dir=None,):
+                 aggregated_layers=None):
         if char_lm_dir is None:
             char_lm_dir = _CHAR_LM_DIR
         if word_lm_dir is None:
             word_lm_dir = _WORD_LM_DIR
         if aggregated_layers is None:
-            aggregated_layers = _AGGREGATED_CHAR_LM_DIR
+            aggregated_layers = AGGREGATED_LAYERS
 
         # aggregated layer
         self._aggregated_layers = aggregated_layers
@@ -196,33 +198,6 @@ class DialectIdentifier(object):
             word_lm_path = os.path.join(word_lm_dir, '{}.arpa'.format(label))
             self._char_lms[label] = kenlm.Model(char_lm_path, config)
             self._word_lms[label] = kenlm.Model(word_lm_path, config)
-
-    def _get_aggregated_char_lm_scores(self, txt):
-        chars = _word_to_char(txt)
-        return np.array([self._aggregated_char_lms[label].score(chars, bos=True, eos=True)
-                         for label in self._labels_aggregated_sorted])
-
-    def _get_aggregated_word_lm_scores(self, txt):
-        return np.array([self._aggregated_word_lms[label].score(txt, bos=True, eos=True)
-                         for label in self._labels_aggregated_sorted])
-
-    def _get_aggregated_lm_feats(self, txt):
-        word_lm_scores = self._get_aggregated_word_lm_scores(
-            txt).reshape(1, -1)
-        word_lm_scores = _normalize_lm_scores(word_lm_scores)
-        char_lm_scores = self._get_aggregated_char_lm_scores(
-            txt).reshape(1, -1)
-        char_lm_scores = _normalize_lm_scores(char_lm_scores)
-        feats = np.concatenate((word_lm_scores, char_lm_scores), axis=1)
-        return feats
-
-    def _get_aggregated_lm_feats_multi(self, sentences):
-        feats_list = collections.deque()
-        for sentence in sentences:
-            feats_list.append(self._get_aggregated_lm_feats(sentence))
-        feats_matrix = np.array(feats_list)
-        feats_matrix = feats_matrix.reshape((-1, 52))
-        return feats_matrix
 
     def _get_char_lm_scores(self, txt):
         chars = _word_to_char(txt)
@@ -250,18 +225,25 @@ class DialectIdentifier(object):
         return feats_matrix
 
     def _prepare_sentences(self, sentences):
+
+        # why use tokenization here, where in train we didn't use anything
         tokenized = [' '.join(simple_word_tokenize(dediac_ar(s)))
                      for s in sentences]
         sent_array = np.array(tokenized)
         x_trans = self._feat_union.transform(sent_array)
         x_trans_extra = self._feat_union_extra.transform(sent_array)
-        x_trans_aggregated = self._feat_union_aggregated.transform(sent_array)
         x_predict_extra = self._classifier_extra.predict_proba(x_trans_extra)
-        x_predict_aggregated = self._classifier_aggregated.predict_proba(
-            x_trans_aggregated)
+        aggregated_prob_distrs = []
+        aggregated_lm_feats = []
+        for layer in self._aggregated_layers:
+            prob_distr, lm_feat = layer.predict_proba_lm_feats(
+                sentences)
+            aggregated_prob_distrs.append(prob_distr)
+            aggregated_lm_feats.append(lm_feat)
+
         x_lm_feats = self._get_lm_feats_multi(sentences)
         x_final = sp.sparse.hstack(
-            (x_trans, x_lm_feats, x_predict_extra, x_predict_aggregated))
+            (x_trans, x_lm_feats, x_predict_extra, np.array(aggregated_prob_distrs).flatten()))
         return x_final
 
     def train(self, data_path=None,
@@ -308,13 +290,8 @@ class DialectIdentifier(object):
         x_extra = train_data_extra['ar'].values
         y_extra = train_data_extra['dialect'].values
 
-        x_aggregated = train_data_aggregated['original_sentence'].values
-        cols = ['dialect_city_id', 'dialect_country_id', 'dialect_region_id']
-        train_data_aggregated['combined'] = train_data_aggregated[cols].apply(
-            lambda row: '-'.join(row.values.astype(str)), axis=1)
-        y_aggregated = train_data_aggregated['combined'].values
-
         # Build and train extra classifier
+        print('Build and train extra classifier')
         self._label_encoder_extra = LabelEncoder()
         self._label_encoder_extra.fit(y_extra)
         y_trans = self._label_encoder_extra.transform(y_extra)
@@ -335,28 +312,13 @@ class DialectIdentifier(object):
                                                      n_jobs=n_jobs)
         self._classifier_extra.fit(x_trans, y_trans)
 
-        # Build and train aggregated classifier
-        self._label_encoder_aggregated = LabelEncoder()
-        self._label_encoder_aggregated.fit(y_aggregated)
-        y_trans = self._label_encoder_aggregated.transform(y_aggregated)
-
-        word_vectorizer = TfidfVectorizer(lowercase=False,
-                                          ngram_range=word_ngram_range,
-                                          analyzer='word',
-                                          tokenizer=lambda x: x.split(' '))
-        char_vectorizer = TfidfVectorizer(lowercase=False,
-                                          ngram_range=char_ngram_range,
-                                          analyzer='char',
-                                          tokenizer=lambda x: x.split(' '))
-        self._feat_union_aggregated = FeatureUnion([('wordgrams', word_vectorizer),
-                                                    ('chargrams', char_vectorizer)])
-        x_trans = self._feat_union_aggregated.fit_transform(x_aggregated)
-
-        self._classifier_aggregated = OneVsRestClassifier(MultinomialNB(),
-                                                          n_jobs=n_jobs)
-        self._classifier_aggregated.fit(x_trans, y_trans)
+        # Build and train aggreggated classifier
+        print('Build and train aggreggated classifier')
+        for layer in self._aggregated_layers:
+            layer.train(train_data_aggregated)
 
         # Build and train main classifier
+        print('Build and train main classifier')
         self._label_encoder = LabelEncoder()
         self._label_encoder.fit(y)
         y_trans = self._label_encoder.transform(y)
@@ -415,8 +377,8 @@ class DialectIdentifier(object):
         # Generate predictions
         x_prepared = self._prepare_sentences(x)
         y_pred = self._classifier.predict(x_prepared)
-        print(y_pred)
-        print(self._classifier.predict_proba(x_prepared))
+        # print(y_pred)
+        # print(self._classifier.predict_proba(x_prepared))
         y_pred = self._label_encoder.inverse_transform(y_pred)
 
         # Get scores

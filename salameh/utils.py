@@ -137,11 +137,10 @@ class LayerObject:
         self.classifier.fit(x_final, y_trans)
 
     def predict_proba_lm_feats(self, sentences):
-        x_trans = self.feat_union.fit_transform(sentences)
+        x_trans = self.feat_union.transform(np.array(sentences))
         x_lm_feats = self.get_lm_feats_multi(sentences)
         x_final = sp.sparse.hstack(
             (x_trans, x_lm_feats))
-
         prob_distr = self.classifier.predict_proba(x_final)
 
         return prob_distr, x_lm_feats

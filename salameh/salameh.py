@@ -163,7 +163,6 @@ class DialectIdentifier(object):
 
     def __init__(self, labels=ADIDA_LABELS,
                  labels_extra=ADIDA_LABELS_EXTRA,
-                 labels_aggregated=AGGREGATED_LABELS_EXTRA,
                  char_lm_dir=None,
                  word_lm_dir=None,
                  aggregated_layers=None):
@@ -175,11 +174,10 @@ class DialectIdentifier(object):
             aggregated_layers = AGGREGATED_LAYERS
 
         # aggregated layer
-        self._aggregated_layers = aggregated_layers
+        self.aggregated_layers = aggregated_layers
 
         self._labels = labels
         self._labels_extra = labels_extra
-        self._labels_aggregated = labels_aggregated
         self._labels_sorted = sorted(labels)
         self._labels_extra_sorted = sorted(labels_extra)
 
@@ -235,15 +233,15 @@ class DialectIdentifier(object):
         x_predict_extra = self._classifier_extra.predict_proba(x_trans_extra)
         aggregated_prob_distrs = []
         aggregated_lm_feats = []
-        for layer in self._aggregated_layers:
-            prob_distr, lm_feat = layer.predict_proba_lm_feats(
+        for i in range(len(self.aggregated_layers)):
+            prob_distr, lm_feat = self.aggregated_layers[i].predict_proba_lm_feats(
                 sentences)
             aggregated_prob_distrs.append(prob_distr)
             aggregated_lm_feats.append(lm_feat)
 
         x_lm_feats = self._get_lm_feats_multi(sentences)
         x_final = sp.sparse.hstack(
-            (x_trans, x_lm_feats, x_predict_extra, np.array(aggregated_prob_distrs).flatten()))
+            (x_trans, x_lm_feats, x_predict_extra, aggregated_prob_distrs[0]))
         return x_final
 
     def train(self, data_path=None,
@@ -314,8 +312,8 @@ class DialectIdentifier(object):
 
         # Build and train aggreggated classifier
         print('Build and train aggreggated classifier')
-        for layer in self._aggregated_layers:
-            layer.train(train_data_aggregated)
+        for i in range(len(self.aggregated_layers)):
+            self.aggregated_layers[i].train(train_data_aggregated)
 
         # Build and train main classifier
         print('Build and train main classifier')

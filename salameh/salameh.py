@@ -165,7 +165,7 @@ class DialectIdentifier(object):
                  labels_extra=ADIDA_LABELS_EXTRA,
                  char_lm_dir=None,
                  word_lm_dir=None,
-                 aggregated_layers=None):
+                 aggregated_layers=None, use_aggregated_distr=False, use_aggregated_lm=False, experiment_name=None):
         if char_lm_dir is None:
             char_lm_dir = _CHAR_LM_DIR
         if word_lm_dir is None:
@@ -175,7 +175,11 @@ class DialectIdentifier(object):
 
         # aggregated layer
         self.aggregated_layers = aggregated_layers
+        self.use_aggregated_lm = use_aggregated_lm
+        self.use_aggregated_distr = use_aggregated_distr
+        self.experiment_name = experiment_name
 
+        # salameh
         self._labels = labels
         self._labels_extra = labels_extra
         self._labels_sorted = sorted(labels)
@@ -233,15 +237,27 @@ class DialectIdentifier(object):
         x_predict_extra = self._classifier_extra.predict_proba(x_trans_extra)
         aggregated_prob_distrs = []
         aggregated_lm_feats = []
-        for i in range(len(self.aggregated_layers)):
-            prob_distr, lm_feat = self.aggregated_layers[i].predict_proba_lm_feats(
-                sentences)
-            aggregated_prob_distrs.append(prob_distr)
-            aggregated_lm_feats.append(lm_feat)
+        # aggregated features
+        if self.use_aggregated_distr or self.use_aggregated_lm:
+            for i in range(len(self.aggregated_layers)):
+                prob_distr, lm_feat = self.aggregated_layers[i].predict_proba_lm_feats(
+                    sentences)
+                aggregated_prob_distrs.append(prob_distr)
+                aggregated_lm_feats.append(lm_feat)
 
         x_lm_feats = self._get_lm_feats_multi(sentences)
         x_final = sp.sparse.hstack(
-            (x_trans, x_lm_feats, x_predict_extra, aggregated_prob_distrs[0]))
+            (x_trans, x_lm_feats, x_predict_extra))
+
+        # aggregated features appending to the features matrix
+        if self.use_aggregated_distr or self.use_aggregated_lm:
+            for i in range(len(self.aggregated_layers)):
+                if self.use_aggregated_distr:
+                    x_final = sp.sparse.hstack(
+                        (x_final, aggregated_prob_distrs[i]))
+                if self.use_aggregated_lm:
+                    x_final = sp.sparse.hstack(
+                        (x_final, aggregated_lm_feats[i]))
         return x_final
 
     def train(self, data_path=None,
@@ -312,8 +328,9 @@ class DialectIdentifier(object):
 
         # Build and train aggreggated classifier
         print('Build and train aggreggated classifier')
-        for i in range(len(self.aggregated_layers)):
-            self.aggregated_layers[i].train(train_data_aggregated)
+        if self.use_aggregated_distr or self.use_aggregated_lm:
+            for i in range(len(self.aggregated_layers)):
+                self.aggregated_layers[i].train(train_data_aggregated)
 
         # Build and train main classifier
         print('Build and train main classifier')

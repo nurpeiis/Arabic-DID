@@ -15,8 +15,9 @@ from sklearn.preprocessing import normalize
 
 class LayerObject:
 
-    def __init__(self, level, kenlm_train, kenlm_train_files, exclude_list, train_path, test_path, val_path):
+    def __init__(self, layer_name, level, kenlm_train, kenlm_train_files, exclude_list, train_path, test_path, val_path):
 
+        self.layer_name = layer_name
         self.level = level
         self.data_dir = os.path.join(
             os.path.dirname(__file__), f'aggregated_{self.level}')
@@ -245,13 +246,9 @@ def whole_process(level, train_files):
 
 
 if __name__ == '__main__':
-    level = 'city'
-    train_files = [f'../aggregated_data/{level}_dev.tsv']
+    level = 'region'
+    train_files = [f'../aggregated_data/{level}_train.tsv']
     #whole_process(level, train_files)
 
-    city_layer = LayerObject('city', False, train_files,
-                             [], 'aggregate_city/MADAR-Corpus-26-train.lines', None, None)
-
-    df = pd.read_csv(
-        'aggregated_country/MADAR-Corpus-26-train.lines', sep='\t', header=0)
-    city_layer.train(df)
+    layer = LayerObject(level, False, train_files,
+                        [], 'aggregate_city/MADAR-Corpus-26-train.lines', None, None)

@@ -15,9 +15,8 @@ from sklearn.preprocessing import normalize
 
 class LayerObject:
 
-    def __init__(self, layer_name, level, kenlm_train, kenlm_train_files, exclude_list, train_path, test_path, val_path):
+    def __init__(self, level, kenlm_train, kenlm_train_files, exclude_list, train_path, use_lm, use_distr):
 
-        self.layer_name = layer_name
         self.level = level
         self.data_dir = os.path.join(
             os.path.dirname(__file__), f'aggregated_{self.level}')
@@ -38,8 +37,22 @@ class LayerObject:
         self.load_lms()
 
         self.train_path = train_path
-        self.test_path = test_path
-        self.val_path = val_path
+
+        self.use_lm = use_lm
+        self.use_distr = use_distr
+
+        self.get_dict_repr()
+
+    def get_dict_repr(self):
+        self.dict_repr = {}
+        self.dict_repr['level'] = self.level
+        self.dict_repr['kenlm_train'] = self.kenlm_train
+        self.dict_repr['kenlm_train_files'] = self.kenlm_train_files
+        self.dict_repr['exclude_list'] = self.exclude_list
+        self.dict_repr['labels'] = self.labels
+        self.dict_repr['train_path'] = self.train_path
+        self.dict_repr['use_lm'] = self.use_lm
+        self.dict_repr['use_distr'] = self.use_distr
 
     def get_labels(self):
         self.labels = sorted([i[:-5]

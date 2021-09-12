@@ -45,6 +45,8 @@ from sklearn.metrics import precision_score
 from camel_tools.tokenizers.word import simple_word_tokenize
 from camel_tools.utils.dediac import dediac_ar
 from utils import LayerObject
+import time
+import json
 
 ADIDA_LABELS = frozenset(['ALE', 'ALG', 'ALX', 'AMM', 'ASW', 'BAG', 'BAS',
                           'BEI', 'BEN', 'CAI', 'DAM', 'DOH', 'FES', 'JED',
@@ -65,18 +67,6 @@ _TRAIN_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_train.tsv')
 _TRAIN_DATA_EXTRA_PATH = os.path.join(_DATA_DIR, 'corpus_6_train.tsv')
 _VAL_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_val.tsv')
 _TEST_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_test.tsv')
-
-
-#city_layer = LayerObject()
-#country_layer = LayerObject()
-#whole_process(level, train_files)
-
-
-city_layer = LayerObject('city', False, ['../aggregated_data/city_train.tsv'],
-                         [], _TRAIN_DATA_AGGREGATED_PATH, None, None)
-# country_layer = LayerObject('country', False, ['../aggregated_data/country_train.tsv'],
-#                            [], _TRAIN_DATA_AGGREGATED_PATH, None, None)
-AGGREGATED_LAYERS = [city_layer]
 
 
 class DIDPred(collections.namedtuple('DIDPred', ['top', 'scores'])):
@@ -165,19 +155,18 @@ class DialectIdentifier(object):
                  labels_extra=ADIDA_LABELS_EXTRA,
                  char_lm_dir=None,
                  word_lm_dir=None,
-                 aggregated_layers=None, use_aggregated_distr=False, use_aggregated_lm=False, experiment_name=None):
+                 aggregated_layers=None,
+                 result_file_name=None):
         if char_lm_dir is None:
             char_lm_dir = _CHAR_LM_DIR
         if word_lm_dir is None:
             word_lm_dir = _WORD_LM_DIR
-        if aggregated_layers is None:
-            aggregated_layers = AGGREGATED_LAYERS
+        if result_file_name is None:
+            result_file_name = time.strftime('%Y%m%d-%H%M%S.txt')
 
         # aggregated layer
         self.aggregated_layers = aggregated_layers
-        self.use_aggregated_lm = use_aggregated_lm
-        self.use_aggregated_distr = use_aggregated_distr
-        self.experiment_name = experiment_name
+        self.result_file_name = result_file_name
 
         # salameh
         self._labels = labels
@@ -238,12 +227,11 @@ class DialectIdentifier(object):
         aggregated_prob_distrs = []
         aggregated_lm_feats = []
         # aggregated features
-        if self.use_aggregated_distr or self.use_aggregated_lm:
-            for i in range(len(self.aggregated_layers)):
-                prob_distr, lm_feat = self.aggregated_layers[i].predict_proba_lm_feats(
-                    sentences)
-                aggregated_prob_distrs.append(prob_distr)
-                aggregated_lm_feats.append(lm_feat)
+        for i in range(len(self.aggregated_layers)):
+            prob_distr, lm_feat = self.aggregated_layers[i].predict_proba_lm_feats(
+                sentences)
+            aggregated_prob_distrs.append(prob_distr)
+            aggregated_lm_feats.append(lm_feat)
 
         x_lm_feats = self._get_lm_feats_multi(sentences)
         x_final = sp.sparse.hstack(
@@ -252,10 +240,10 @@ class DialectIdentifier(object):
         # aggregated features appending to the features matrix
         if self.use_aggregated_distr or self.use_aggregated_lm:
             for i in range(len(self.aggregated_layers)):
-                if self.use_aggregated_distr:
+                if self.aggregated_layers[i].use_distr:
                     x_final = sp.sparse.hstack(
                         (x_final, aggregated_prob_distrs[i]))
-                if self.use_aggregated_lm:
+                if self.aggregated_layers[i].use_lm:
                     x_final = sp.sparse.hstack(
                         (x_final, aggregated_lm_feats[i]))
         return x_final
@@ -328,9 +316,8 @@ class DialectIdentifier(object):
 
         # Build and train aggreggated classifier
         print('Build and train aggreggated classifier')
-        if self.use_aggregated_distr or self.use_aggregated_lm:
-            for i in range(len(self.aggregated_layers)):
-                self.aggregated_layers[i].train(train_data_aggregated)
+        for i in range(len(self.aggregated_layers)):
+            self.aggregated_layers[i].train(train_data_aggregated)
 
         # Build and train main classifier
         print('Build and train main classifier')
@@ -410,6 +397,18 @@ class DialectIdentifier(object):
 
         return scores
 
+    def record_experiment(self, scores):
+        print(scores)
+        final_record = {}
+        final_record['scores'] = scores
+        with open(self.result_file_name, 'w') as f:
+            for i in range(len(self.aggregated_layers)):
+                final_record[f'layer_{i}'] = self.aggregated_layers[i].dict_repr
+
+            f.write(json.dumps(final_record))
+
+        print('Recorded experiment in:', self.result_file_name)
+
     def predict(self, sentences):
         """Predict the dialect probability scores for a given list of
         sentences.
@@ -439,4 +438,4 @@ class DialectIdentifier(object):
 if __name__ == '__main__':
     d = DialectIdentifier()
     d.train()
-    print(d.eval(data_set='TEST'))
+    d.eval(data_set='TEST')

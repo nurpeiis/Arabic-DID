@@ -15,14 +15,15 @@ from sklearn.preprocessing import normalize
 
 class LayerObject:
 
-    def __init__(self, level, kenlm_train, kenlm_train_files, exclude_list, train_path, use_lm, use_distr):
+    def __init__(self, dict_repr):
 
-        self.level = level
+        self.dict_repr = dict_repr
+        self.level = dict_repr['level']
         self.data_dir = os.path.join(
             os.path.dirname(__file__), f'aggregated_{self.level}')
-        self.kenlm_train = kenlm_train
-        self.kenlm_train_files = kenlm_train_files
-        self.exclude_list = exclude_list
+        self.kenlm_train = dict_repr['kenlm_train']
+        self.kenlm_train_files = dict_repr['kenlm_train_files']
+        self.exclude_list = dict_repr['exclude_list']
 
         # kenlm was not trained yet or we would like to train from scratch
         if not os.path.exists(self.data_dir) or self.kenlm_train:
@@ -32,27 +33,16 @@ class LayerObject:
         self.word_lm_dir = os.path.join(self.data_dir, 'lm', 'word')
         self.labels = []
         self.get_labels()
+        self.dict_repr['labels'] = self.labels
         self.char_lms = collections.defaultdict(kenlm.Model)
         self.word_lms = collections.defaultdict(kenlm.Model)
         self.load_lms()
 
-        self.train_path = train_path
+        self.train_path = dict_repr['train_path']
 
-        self.use_lm = use_lm
-        self.use_distr = use_distr
-
-        self.get_dict_repr()
-
-    def get_dict_repr(self):
-        self.dict_repr = {}
-        self.dict_repr['level'] = self.level
-        self.dict_repr['kenlm_train'] = self.kenlm_train
-        self.dict_repr['kenlm_train_files'] = self.kenlm_train_files
-        self.dict_repr['exclude_list'] = self.exclude_list
-        self.dict_repr['labels'] = self.labels
-        self.dict_repr['train_path'] = self.train_path
-        self.dict_repr['use_lm'] = self.use_lm
-        self.dict_repr['use_distr'] = self.use_distr
+        self.use_lm = dict_repr['use_lm']
+        self.use_distr = dict_repr['use_distr']
+        self.cols_train = dict_repr['cols_train']
 
     def get_labels(self):
         self.labels = sorted([i[:-5]
@@ -116,14 +106,14 @@ class LayerObject:
         # print(feats_matrix.shape)
         return feats_matrix
 
-    def train(self, df, cols_train=['dialect_city_id', 'dialect_country_id', 'dialect_region_id']):
+    def train(self, df):
         n_jobs = None
         char_ngram_range = (1, 3)
         word_ngram_range = (1, 1)
 
         sentences = df['original_sentence'].values
-        #cols = ['dialect_city_id', 'dialect_country_id', 'dialect_region_id']
-        df['combined'] = df[cols_train].apply(
+        # cols = ['dialect_city_id', 'dialect_country_id', 'dialect_region_id']
+        df['combined'] = df[self.cols_train].apply(
             lambda row: '-'.join(row.values.astype(str)), axis=1)
         y = df['combined'].values
 
@@ -261,7 +251,7 @@ def whole_process(level, train_files):
 if __name__ == '__main__':
     level = 'region'
     train_files = [f'../aggregated_data/{level}_train.tsv']
-    #whole_process(level, train_files)
+    # whole_process(level, train_files)
 
     layer = LayerObject(level, False, train_files,
                         [], 'aggregate_city/MADAR-Corpus-26-train.lines', None, None)

@@ -29,7 +29,7 @@ def get_cols_train(level, file_name):
         return cols[2:]
 
 
-def get_single_layer_list(level, kenlm_train, exclude_list):
+def get_single_layer_list(level, kenlm_train, exclude_list, use_lm, use_distr):
     layers = []
 
     for exclude in exclude_list[level]:
@@ -51,27 +51,63 @@ def get_single_layer_list(level, kenlm_train, exclude_list):
     return layers
 
 
-def subsets_util(levels, result, subset, index):
-    result.append(subset)
-    for i in range(index, len(levels)):
-        print(i)
-        # include the A[i] in subset.
-        subset.append(i)
-        # move onto the next element.
-        subsets_util(level, result, subset, i+1)
-        # exclude the A[i] from subset and triggers
-        # backtracking.
-        subset.pop(-1)
+def subsets_util(levels, i, n, result, subset, j):
+    # checking if all elements of the array are traverse or not
+    if(i == n):
+        # print the subset array
+        idx = 0
+        a = []
+        while(idx < j):
+            a.append(subset[idx])
+            idx += 1
+
+        result.append(a)
+        return
+
+    # for each index i, we have 2 options
+    # case 1: i is not included in the subset
+    # in this case simply increment i and move ahead
+    subsets_util(levels, i+1, n, result, subset, j)
+    # case 2: i is included in the subset
+    # insert arr[i] at the end of subset
+    # increment i and j
+    subset[j] = i
+    subsets_util(levels, i+1, n, result, subset, j+1)
 
 
 def get_combo(levels):
-    subset = []
+    subset = [0]*2**len(levels)
     result = []
-    # keeps track of current element in vector A;
-    index = 0
-    subsets_util(levels, result, subset, index)
-    print(result)
+
+    subsets_util(levels, 0, len(levels), result, subset, 0)
+    result = result[1:]  # exclude empty array
     return result
+
+
+def get_layers_combinations(combos, single_layers):
+    layers_combo = []
+    single_layer = []
+    for combo in combos:
+        single_layer = []
+        for i in range(len(combo)):
+            if i == 0 and len(combo) == 1:
+                for layer in single_layers[combo[i]]:
+                    single_layer.append([layer])
+            # else:
+        if len(single_layer):
+            layers_combo.append(single_layer)
+
+    return layers_combo
+
+
+def run_experiments(layers_combo):
+    for combo in layers_combo:
+        for layers in combo:
+            aggregated_layers = []
+            for layer in layers:
+                l = LayerObject(layer)
+                aggregated_layers.append(l)
+            run_experiment(aggregated_layers)
 
 
 if __name__ == '__main__':
@@ -84,7 +120,11 @@ if __name__ == '__main__':
     use_distr = [True, False]
     single_layers = []
     for level in levels:
-        layers = get_single_layer_list(level, kenlm_train, exclude_list)
+        layers = get_single_layer_list(
+            level, kenlm_train, exclude_list, use_lm, use_distr)
         single_layers.append(layers)
 
-    get_combo(levels)
+    combos = get_combo(levels)
+    print(combos)
+    layers_combo = get_layers_combinations(combos, single_layers)
+    run_experiments(layers_combo)

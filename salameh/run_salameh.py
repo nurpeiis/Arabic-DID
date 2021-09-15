@@ -46,6 +46,7 @@ def get_single_layer_list(level, kenlm_train, exclude_list, use_lm, use_distr):
                     dict_repr['train_path'] = train_path
                     dict_repr['use_lm'] = lm
                     dict_repr['use_distr'] = distr
+                    dict_repr['cols_train'] = get_cols_train(level, train_path)
                     layers.append(dict_repr)
 
     return layers

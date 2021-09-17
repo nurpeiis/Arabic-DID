@@ -237,15 +237,13 @@ class DialectIdentifier(object):
         x_final = sp.sparse.hstack(
             (x_trans, x_lm_feats, x_predict_extra))
 
-        # aggregated features appending to the features matrix
-        if self.use_aggregated_distr or self.use_aggregated_lm:
-            for i in range(len(self.aggregated_layers)):
-                if self.aggregated_layers[i].use_distr:
-                    x_final = sp.sparse.hstack(
-                        (x_final, aggregated_prob_distrs[i]))
-                if self.aggregated_layers[i].use_lm:
-                    x_final = sp.sparse.hstack(
-                        (x_final, aggregated_lm_feats[i]))
+        for i in range(len(self.aggregated_layers)):
+            if self.aggregated_layers[i].use_distr:
+                x_final = sp.sparse.hstack(
+                    (x_final, aggregated_prob_distrs[i]))
+            if self.aggregated_layers[i].use_lm:
+                x_final = sp.sparse.hstack(
+                    (x_final, aggregated_lm_feats[i]))
         return x_final
 
     def train(self, data_path=None,

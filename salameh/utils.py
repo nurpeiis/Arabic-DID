@@ -108,16 +108,12 @@ class LayerObject:
         # print(feats_matrix.shape)
         return feats_matrix
 
-    def train(self, df):
+    def train(self, df, repeat=0):
         n_jobs = None
         char_ngram_range = (1, 3)
         word_ngram_range = (1, 1)
 
-        sentences = df['original_sentence'].values
-        # cols = ['dialect_city_id', 'dialect_country_id', 'dialect_region_id']
-        df['combined'] = df[self.cols_train].apply(
-            lambda row: '-'.join(row.values.astype(str)), axis=1)
-        y = df['combined'].values
+        y, sentences = df2dialectsentence(df, level, repeat)
 
         # Build and train aggregated classifier
         self.label_encoder = LabelEncoder()
@@ -215,21 +211,24 @@ def word_to_char(txt):
     return ' '.join(list(txt.replace(' ', 'X')))
 
 
-def file2dialectsentence(files, level):
+def file2dialectsentence(files, level, repeat=0):
     df = pd.read_csv(files[0], sep='\t', header=0)
     for i in range(1, len(files)):
         df = df.append(pd.read_csv(files[i], sep='\t', header=0))
 
-    return df2dialectsentence(df, level)
+    return df2dialectsentence(df, level, repeat)
 
 
-def df2dialectsentence(df, level):
+def df2dialectsentence(df, level, repeat=0):
     """
         df: pd.DataFrame with sentences
         level: string representation of the level, whether it be 'city', 'country', or 'region'
         return y, x
     """
     sentence_list = df['original_sentence'].tolist()
+    if repeat > 0:
+        sentence_list = [' '.join([i]*(repeat+1)) for i in sentence_list]
+
     dialect_list = df2dialect(df, level)
     return dialect_list, sentence_list
 

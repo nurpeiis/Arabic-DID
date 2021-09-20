@@ -154,17 +154,25 @@ class DialectIdentifier(object):
                  char_lm_dir=None,
                  word_lm_dir=None,
                  aggregated_layers=None,
-                 result_file_name=None):
+                 result_file_name=None,
+                 repeat_sentence_train=0,
+                 repeat_sentence_eval=0):
+        self.exp_time = time.strftime('%Y%m%d-%H%M%S')
+
         if char_lm_dir is None:
             char_lm_dir = _CHAR_LM_DIR
         if word_lm_dir is None:
             word_lm_dir = _WORD_LM_DIR
         if result_file_name is None:
-            result_file_name = time.strftime('%Y%m%d-%H%M%S.txt')
+            result_file_name = f'{self.exp_time}.json'
 
         # aggregated layer
         self.aggregated_layers = aggregated_layers
         self.result_file_name = result_file_name
+
+        # repeating sentence as input, i.e. 'A A B' -> 'A A B A A B' if repeat == 1
+        self.repeat_sentence_train = repeat_sentence_train
+        self.repeat_sentence_eval = repeat_sentence_eval
 
         # salameh
         self._labels = labels
@@ -287,8 +295,10 @@ class DialectIdentifier(object):
         train_data_aggregated = pd.read_csv(
             data_aggregated_path, sep='\t', header=0)
 
-        y, x = df2dialectsentence(train_data, level)
-        y_extra, x_extra = df2dialectsentence(train_data_extra, level)
+        y, x = df2dialectsentence(
+            train_data, level, self.repeat_sentence_train)
+        y_extra, x_extra = df2dialectsentence(
+            train_data_extra, level, self.repeat_sentence_train)
 
         # Build and train extra classifier
         print('Build and train extra classifier')
@@ -316,7 +326,8 @@ class DialectIdentifier(object):
         print('Build and train aggreggated classifier')
         if self.aggregated_layers:
             for i in range(len(self.aggregated_layers)):
-                self.aggregated_layers[i].train(train_data_aggregated)
+                self.aggregated_layers[i].train(
+                    train_data_aggregated, self.repeat_sentence_train)
 
         # Build and train main classifier
         print('Build and train main classifier')
@@ -373,7 +384,8 @@ class DialectIdentifier(object):
             level = 'city'
         # Load eval data
         eval_data = pd.read_csv(data_path, sep='\t', header=0)
-        y_true, x = df2dialectsentence(eval_data, level)
+        y_true, x = df2dialectsentence(
+            eval_data, level, self.repeat_sentence_eval)
 
         # Generate predictions
         x_prepared = self._prepare_sentences(x)
@@ -385,15 +397,26 @@ class DialectIdentifier(object):
 
         return levels_scores
 
-    def record_experiment(self, scores):
-        print(scores)
+    def record_experiment(self, levels_score):
         final_record = {}
-        final_record['scores'] = scores
-        with open(self.result_file_name, 'w') as f:
+        final_record['levels_score'] = levels_score
+        final_record['exp_time'] = self.exp_time
+        final_record['repeat_sentence_train'] = self.repeat_sentence_train
+        final_record['repeat_sentence_eval'] = self.repeat_sentence_eval
+        if self.aggregated_layers:
             for i in range(len(self.aggregated_layers)):
                 final_record[f'layer_{i}'] = self.aggregated_layers[i].dict_repr
 
-            f.write(json.dumps(final_record))
+        data = []
+        if os.path.exists(self.result_file_name):
+            # 1. Read file contents
+            with open(self.result_file_name, "r") as file:
+                data = json.load(file)
+
+        data.append(final_record)
+
+        with open(self.result_file_name, "w") as file:
+            json.dump(data, file)
 
         print('Recorded experiment in:', self.result_file_name)
 
@@ -424,6 +447,9 @@ class DialectIdentifier(object):
 
 
 if __name__ == '__main__':
-    d = DialectIdentifier()
-    d.train()
-    print(d.eval(data_set='TEST'))
+    for i in range(3):
+        d = DialectIdentifier(repeat_sentence_eval=i,
+                              result_file_name='love.json')
+        d.train()
+        scores = d.eval(data_set='TEST')
+        d.record_experiment(scores)

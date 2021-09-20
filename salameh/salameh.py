@@ -44,7 +44,7 @@ from sklearn.metrics import accuracy_score, f1_score, recall_score
 from sklearn.metrics import precision_score
 from camel_tools.tokenizers.word import simple_word_tokenize
 from camel_tools.utils.dediac import dediac_ar
-from utils import LayerObject
+from utils import df2dialectsentence, levels_eval
 import time
 import json
 
@@ -54,19 +54,17 @@ ADIDA_LABELS = frozenset(['ALE', 'ALG', 'ALX', 'AMM', 'ASW', 'BAG', 'BAS',
                           'SAL', 'SAN', 'SFX', 'TRI', 'TUN'])
 
 ADIDA_LABELS_EXTRA = frozenset(['BEI', 'CAI', 'DOH', 'MSA', 'RAB', 'TUN'])
-# AGGREGATED_LABELS_EXTRA = frozenset(['amarah-iq-gulf', 'shibin_el_kom-eg-nile_basin', 'muscat-om-gulf', 'asyut-eg-nile_basin', 'kut-iq-gulf', 'luxor-eg-nile_basin', 'hail-sa-gulf', 'kafr_el_sheikh-eg-nile_basin', 'marrakesh-ma-maghreb', 'aqaba-jo-levant', 'meknes-ma-maghreb', 'amman-jo-levant', 'bayda-ly-maghreb', 'halba-lb-levant', 'umm_al_quwain-ae-gulf', 'najaf-iq-gulf', 'hawalli-kw-gulf', 'sidon-lb-levant', 'khartoum-sd-nile_basin', 'tripoli-ly-maghreb', 'tobruk-ly-maghreb', 'annaba-dz-maghreb', 'msa-msa-msa', 'bordj_bou_arreridj-dz-maghreb', 'jijel-dz-maghreb', 'abu_dhabi-ae-gulf', 'fes-ma-maghreb', 'aleppo-sy-levant', 'suez-eg-nile_basin', 'ismailia-eg-nile_basin', 'samawah-iq-gulf', 'doha-qa-gulf', 'mansoura-eg-nile_basin', 'damascus-sy-levant', 'al_rayyan-qa-gulf', 'girga-eg-nile_basin', 'cairo-eg-nile_basin', 'buraidah-sa-gulf', 'riyadh-sa-gulf', 'karbala-iq-gulf', 'duhok-iq-gulf', 'el_arish-eg-nile_basin', 'oujda-ma-maghreb', 'aswan-eg-nile_basin', 'manama-bh-gulf', 'oran-dz-maghreb', 'jizan-sa-gulf', 'mahdia-tn-maghreb', 'jeddah-sa-gulf', 'agadir-ma-maghreb', 'beirut-lb-levant', 'tripoli-lb-levant', 'al_suwayda-sy-levant', 'tanta-eg-nile_basin', 'dammam-sa-gulf', 'mogadishu-so-gulf_aden',
-# 'sfax-tn-maghreb', 'salalah-om-gulf', 'al_hudaydah-ye-gulf_aden', 'hurghada-eg-nile_basin', 'basra-iq-gulf', 'zagazig-eg-nile_basin', 'salt-jo-levant', 'rabat-ma-maghreb', 'sohar-om-gulf', 'abha-sa-gulf', 'fujairah-ae-gulf', 'mosul-iq-gulf', 'baghdad-iq-gulf', 'ariana-tn-maghreb', 'el_tor-eg-nile_basin', 'homs-sy-levant', 'beni_suef-eg-nile_basin', 'najran-sa-gulf', 'ramadi-iq-gulf', 'faiyum-eg-nile_basin', 'ouargla-dz-maghreb', 'ras_al_khaimah-ae-gulf', 'algiers-dz-maghreb', 'nouakchott-mr-maghreb', 'tabuk-sa-gulf', 'tunis-tn-maghreb', 'minya-eg-nile_basin', 'dhamar-ye-gulf_aden', 'sousse-tn-maghreb', 'erbil-iq-gulf', 'khasab-om-gulf', 'bouira-dz-maghreb', 'djibouti-dj-gulf_aden', 'ibb-ye-gulf_aden', 'al_madinah-sa-gulf', 'jerusalem-ps-levant', 'khenchela-dz-maghreb', 'qena-eg-nile_basin', 'jahra-kw-gulf', 'kairouan-tn-maghreb', 'damanhur-eg-nile_basin', 'alexandria-eg-nile_basin', 'port_said-eg-nile_basin', 'sanaa-ye-gulf_aden', 'dubai-ae-gulf', 'giza-eg-nile_basin', 'sulaymaniyah-iq-gulf', 'latakia-sy-levant', 'zarqa-jo-levant', 'sur-om-gulf', 'nizwa-om-gulf', 'aden-ye-gulf_aden', 'benghazi-ly-maghreb', 'bechar-dz-maghreb', 'gaza-ps-levant', 'misrata-ly-maghreb', 'tangier-ma-maghreb'])
-AGGREGATED_LABELS_EXTRA = frozenset(['ma-maghreb', 'bh-gulf', 'msa-msa', 'tn-maghreb', 'sd-nile_basin', 'dj-gulf_aden', 'mr-maghreb', 'ps-levant', 'lb-levant', 'eg-nile_basin',
-                                    'ye-gulf_aden', 'gulf-gulf', 'dz-maghreb', 'iq-gulf', 'ps,jo-levant', 'qa-gulf', 'jo-levant', 'so-gulf_aden', 'ae-gulf', 'om-gulf', 'ly-maghreb', 'kw-gulf', 'sa-gulf', 'sy-levant'])
 _DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 _CHAR_LM_DIR = os.path.join(_DATA_DIR, 'lm', 'char')
 _WORD_LM_DIR = os.path.join(_DATA_DIR, 'lm', 'word')
 
-_TRAIN_DATA_AGGREGATED_PATH = 'aggregated_city/MADAR-Corpus-26-train.lines'
-_TRAIN_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_train.tsv')
-_TRAIN_DATA_EXTRA_PATH = os.path.join(_DATA_DIR, 'corpus_6_train.tsv')
-_VAL_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_val.tsv')
-_TEST_DATA_PATH = os.path.join(_DATA_DIR, 'corpus_26_test.tsv')
+_TRAIN_DATA_AGGREGATED_PATH = os.path.join(
+    _DATA_DIR, 'MADAR-Corpus-26-train.lines')
+
+_TRAIN_DATA_PATH = os.path.join(_DATA_DIR, 'MADAR-Corpus-26-train.lines')
+_TRAIN_DATA_EXTRA_PATH = os.path.join(_DATA_DIR, 'MADAR-Corpus-6-train.lines')
+_VAL_DATA_PATH = os.path.join(_DATA_DIR, 'MADAR-Corpus-26-val.lines')
+_TEST_DATA_PATH = os.path.join(_DATA_DIR, 'MADAR-Corpus-26-test.lines')
 
 
 class DIDPred(collections.namedtuple('DIDPred', ['top', 'scores'])):
@@ -227,28 +225,31 @@ class DialectIdentifier(object):
         aggregated_prob_distrs = []
         aggregated_lm_feats = []
         # aggregated features
-        for i in range(len(self.aggregated_layers)):
-            prob_distr, lm_feat = self.aggregated_layers[i].predict_proba_lm_feats(
-                sentences)
-            aggregated_prob_distrs.append(prob_distr)
-            aggregated_lm_feats.append(lm_feat)
+        if self.aggregated_layers:
+            for i in range(len(self.aggregated_layers)):
+                prob_distr, lm_feat = self.aggregated_layers[i].predict_proba_lm_feats(
+                    sentences)
+                aggregated_prob_distrs.append(prob_distr)
+                aggregated_lm_feats.append(lm_feat)
 
         x_lm_feats = self._get_lm_feats_multi(sentences)
         x_final = sp.sparse.hstack(
             (x_trans, x_lm_feats, x_predict_extra))
 
-        for i in range(len(self.aggregated_layers)):
-            if self.aggregated_layers[i].use_distr:
-                x_final = sp.sparse.hstack(
-                    (x_final, aggregated_prob_distrs[i]))
-            if self.aggregated_layers[i].use_lm:
-                x_final = sp.sparse.hstack(
-                    (x_final, aggregated_lm_feats[i]))
+        if self.aggregated_layers:
+            for i in range(len(self.aggregated_layers)):
+                if self.aggregated_layers[i].use_distr:
+                    x_final = sp.sparse.hstack(
+                        (x_final, aggregated_prob_distrs[i]))
+                if self.aggregated_layers[i].use_lm:
+                    x_final = sp.sparse.hstack(
+                        (x_final, aggregated_lm_feats[i]))
         return x_final
 
     def train(self, data_path=None,
               data_extra_path=None,
               data_aggregated_path=None,
+              level=None,
               char_ngram_range=(1, 3),
               word_ngram_range=(1, 1),
               n_jobs=None):
@@ -278,17 +279,16 @@ class DialectIdentifier(object):
             data_extra_path = _TRAIN_DATA_EXTRA_PATH
         if data_aggregated_path is None:
             data_aggregated_path = _TRAIN_DATA_AGGREGATED_PATH
-
+        if level is None:
+            level = 'city'
         # Load training data and extract
-        train_data = pd.read_csv(data_path, sep='\t', index_col=0)
-        train_data_extra = pd.read_csv(data_extra_path, sep='\t', index_col=0)
+        train_data = pd.read_csv(data_path, sep='\t', header=0)
+        train_data_extra = pd.read_csv(data_extra_path, sep='\t', header=0)
         train_data_aggregated = pd.read_csv(
             data_aggregated_path, sep='\t', header=0)
 
-        x = train_data['ar'].values
-        y = train_data['dialect'].values
-        x_extra = train_data_extra['ar'].values
-        y_extra = train_data_extra['dialect'].values
+        y, x = df2dialectsentence(train_data, level)
+        y_extra, x_extra = df2dialectsentence(train_data_extra, level)
 
         # Build and train extra classifier
         print('Build and train extra classifier')
@@ -314,8 +314,9 @@ class DialectIdentifier(object):
 
         # Build and train aggreggated classifier
         print('Build and train aggreggated classifier')
-        for i in range(len(self.aggregated_layers)):
-            self.aggregated_layers[i].train(train_data_aggregated)
+        if self.aggregated_layers:
+            for i in range(len(self.aggregated_layers)):
+                self.aggregated_layers[i].train(train_data_aggregated)
 
         # Build and train main classifier
         print('Build and train main classifier')
@@ -342,7 +343,7 @@ class DialectIdentifier(object):
 
         self._is_trained = True
 
-    def eval(self, data_path=None, data_set='VALIDATION'):
+    def eval(self, data_path=None, data_set='VALIDATION', level=None):
         """Evaluate the trained model on a given data set.
         Args:
             data_path (str, optional): Path to an evaluation data set.
@@ -368,32 +369,21 @@ class DialectIdentifier(object):
                 data_path = _TEST_DATA_PATH
             else:
                 raise InvalidDataSetError(data_set)
-
+        if level is None:
+            level = 'city'
         # Load eval data
-        eval_data = pd.read_csv(data_path, sep='\t', index_col=0)
-        x = eval_data['ar'].values
-        y_true = eval_data['dialect'].values
+        eval_data = pd.read_csv(data_path, sep='\t', header=0)
+        y_true, x = df2dialectsentence(eval_data, level)
 
         # Generate predictions
         x_prepared = self._prepare_sentences(x)
         y_pred = self._classifier.predict(x_prepared)
-        # print(y_pred)
         # print(self._classifier.predict_proba(x_prepared))
         y_pred = self._label_encoder.inverse_transform(y_pred)
-
         # Get scores
-        scores = {
-            'accuracy': accuracy_score(y_true, y_pred),
-            'f1_micro': f1_score(y_true, y_pred, average='micro'),
-            'f1_macro': f1_score(y_true, y_pred, average='macro'),
-            'recall_micro': recall_score(y_true, y_pred, average='micro'),
-            'recall_macro': recall_score(y_true, y_pred, average='macro'),
-            'precision_micro': precision_score(y_true, y_pred,
-                                               average='micro'),
-            'precision_macro': precision_score(y_true, y_pred, average='macro')
-        }
+        levels_scores = levels_eval(y_true, y_pred, level)
 
-        return scores
+        return levels_scores
 
     def record_experiment(self, scores):
         print(scores)
@@ -436,4 +426,4 @@ class DialectIdentifier(object):
 if __name__ == '__main__':
     d = DialectIdentifier()
     d.train()
-    d.eval(data_set='TEST')
+    print(d.eval(data_set='TEST'))

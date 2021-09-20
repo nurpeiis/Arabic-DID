@@ -103,11 +103,10 @@ To install python package run following command:
 ## Training idea:
 1. Use particular separate levels to have ripple carrying effect
 2. Salameh + then gradually add data
-3. For Salameh use your hierarchical labels that you created to evaluate in different levels
-4. for every input repeat the sequence twice or n number of times to see how it affects the signal !!!
+3. for every input repeat the sequence twice or n number of times to see how it affects the signal !!!
 
 ## Evaluation:
-- Evaluate at country & region level, i.e. even if city level increases by 0.3%, there might be larger increase at higher levels 
+
 - Have 113 evaluation too, potentially significantly lower, but  higher level label is better
 - Statistical significance TODO: MUST READ ABOUT HOW THIS IS DONE
   - Look into T-test in particular

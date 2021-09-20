@@ -11,6 +11,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import normalize
+from sklearn.metrics import accuracy_score, f1_score, recall_score
+from sklearn.metrics import precision_score
 
 
 class LayerObject:
@@ -217,7 +219,23 @@ def file2dialectsentence(files, level):
     df = pd.read_csv(files[0], sep='\t', header=0)
     for i in range(1, len(files)):
         df = df.append(pd.read_csv(files[i], sep='\t', header=0))
+
+    return df2dialectsentence(df, level)
+
+
+def df2dialectsentence(df, level):
+    """
+        df: pd.DataFrame with sentences
+        level: string representation of the level, whether it be 'city', 'country', or 'region'
+        return y, x
+    """
     sentence_list = df['original_sentence'].tolist()
+    dialect_list = df2dialect(df, level)
+    return dialect_list, sentence_list
+
+
+def df2dialect(df, level):
+
     cols = []
     if level == 'city':
         cols = ['dialect_city_id', 'dialect_country_id', 'dialect_region_id']
@@ -229,7 +247,44 @@ def file2dialectsentence(files, level):
         lambda row: '-'.join(row.values.astype(str)), axis=1)
 
     dialect_list = df['combined'].tolist()
-    return dialect_list, sentence_list
+
+    return dialect_list
+
+
+def single_level_eval(y_true, y_pred):
+
+    scores = {
+        'accuracy': accuracy_score(y_true, y_pred),
+        'f1_micro': f1_score(y_true, y_pred, average='micro'),
+        'f1_macro': f1_score(y_true, y_pred, average='macro'),
+        'recall_micro': recall_score(y_true, y_pred, average='micro'),
+        'recall_macro': recall_score(y_true, y_pred, average='macro'),
+        'precision_micro': precision_score(y_true, y_pred,
+                                           average='micro'),
+        'precision_macro': precision_score(y_true, y_pred, average='macro')
+    }
+
+    return scores
+
+
+def levels_eval(y_true, y_pred, level):
+    levels_scores = {}
+    if level == 'city':
+        levels_scores['city'] = single_level_eval(y_true, y_pred)
+        y_true = ['-'.join(i.split('-')[1:]) for i in y_true]
+        y_pred = ['-'.join(i.split('-')[1:]) for i in y_pred]
+        level = 'country'
+
+    if level == 'country':
+        levels_scores['country'] = single_level_eval(y_true, y_pred)
+        y_true = [i.split('-')[1] for i in y_true]
+        y_pred = [i.split('-')[1] for i in y_pred]
+        level = 'region'
+
+    if level == 'region':
+        levels_scores['region'] = single_level_eval(y_true, y_pred)
+
+    return levels_scores
 
 
 def whole_process(level, train_files):

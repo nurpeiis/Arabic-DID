@@ -40,8 +40,6 @@ from sklearn.pipeline import FeatureUnion
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import normalize
-from sklearn.metrics import accuracy_score, f1_score, recall_score
-from sklearn.metrics import precision_score
 from camel_tools.tokenizers.word import simple_word_tokenize
 from camel_tools.utils.dediac import dediac_ar
 from utils import df2dialectsentence, levels_eval

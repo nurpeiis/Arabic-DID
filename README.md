@@ -101,9 +101,8 @@ To install python package run following command:
 ```
                                        
 ## Training idea:
-1. Use particular separate levels to have ripple carrying effect
-2. Salameh + then gradually add data
-3. for every input repeat the sequence twice or n number of times to see how it affects the signal !!!
+1. Use particular separate levels to have ripple carrying effect: Do this!!
+
 
 ## Evaluation:
 

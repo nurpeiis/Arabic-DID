@@ -2,10 +2,12 @@ from salameh import DialectIdentifier
 from utils import LayerObject
 
 
-def run_experiment(aggregated_layers):
+def run_experiment(aggregated_layers, repeat_train=0, repeat_eval=0, file_name='results.json'):
     print('Running Experiment')
-    d = DialectIdentifier(
-        aggregated_layers=aggregated_layers)
+    d = DialectIdentifier(result_file_name=file_name,
+                          aggregated_layers=aggregated_layers,
+                          repeat_sentence_eval=repeat_eval,
+                          repeat_sentence_train=repeat_train)
     d.train()
     scores = d.eval(data_set='TEST')
     d.record_experiment(scores)
@@ -31,7 +33,6 @@ def get_cols_train(level, file_name):
 
 def get_single_layer_list(level, kenlm_train, exclude_list, use_lm, use_distr):
     layers = []
-
     for exclude in exclude_list[level]:
         for train_path in get_train_path(level):
             for lm in use_lm:
@@ -41,12 +42,14 @@ def get_single_layer_list(level, kenlm_train, exclude_list, use_lm, use_distr):
                     dict_repr = {}
                     dict_repr['level'] = level
                     dict_repr['kenlm_train'] = kenlm_train
-                    dict_repr['kenlm_train_files'] = get_kenlm_train(level)
+                    dict_repr['kenlm_train_files'] = get_kenlm_train(
+                        level)
                     dict_repr['exclude_list'] = exclude
                     dict_repr['train_path'] = train_path
                     dict_repr['use_lm'] = lm
                     dict_repr['use_distr'] = distr
-                    dict_repr['cols_train'] = get_cols_train(level, train_path)
+                    dict_repr['cols_train'] = get_cols_train(
+                        level, train_path)
                     layers.append(dict_repr)
 
     return layers
@@ -104,11 +107,14 @@ def get_layers_combinations(combos, single_layers):
 def run_experiments(layers_combo):
     for combo in layers_combo:
         for layers in combo:
-            aggregated_layers = []
-            for layer in layers:
-                l = LayerObject(layer)
-                aggregated_layers.append(l)
-            run_experiment(aggregated_layers)
+            for repeat_train in range(3):
+                for repeat_eval in range(3):
+                    aggregated_layers = []
+                    for layer in layers:
+                        l = LayerObject(layer)
+                        aggregated_layers.append(l)
+                    run_experiment(
+                        aggregated_layers, repeat_train=repeat_train, repeat_eval=repeat_eval)
 
 
 if __name__ == '__main__':

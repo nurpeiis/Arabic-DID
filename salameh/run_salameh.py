@@ -2,7 +2,7 @@ from salameh import DialectIdentifier
 from utils import LayerObject
 
 
-def run_experiment(aggregated_layers, repeat_train=0, repeat_eval=0, file_name='results.json'):
+def run_experiment(aggregated_layers=None, repeat_train=0, repeat_eval=0, file_name='results.json'):
     print('Running Experiment')
     d = DialectIdentifier(result_file_name=file_name,
                           aggregated_layers=aggregated_layers,
@@ -104,7 +104,13 @@ def get_layers_combinations(combos, single_layers):
     return layers_combo
 
 
-def run_experiments(layers_combo):
+def run_experiments(layers_combo, file_name='results.json'):
+    # just Salameh
+    for repeat_train in range(3):
+        for repeat_eval in range(3):
+            run_experiment(repeat_train=repeat_train,
+                           repeat_eval=repeat_eval, file_name=file_name)
+    # all different combos
     for combo in layers_combo:
         for layers in combo:
             for repeat_train in range(3):
@@ -114,7 +120,7 @@ def run_experiments(layers_combo):
                         l = LayerObject(layer)
                         aggregated_layers.append(l)
                     run_experiment(
-                        aggregated_layers, repeat_train=repeat_train, repeat_eval=repeat_eval)
+                        aggregated_layers, repeat_train=repeat_train, repeat_eval=repeat_eval, file_name=file_name)
 
 
 if __name__ == '__main__':
@@ -134,4 +140,5 @@ if __name__ == '__main__':
     combos = get_combo(levels)
     print(combos)
     layers_combo = get_layers_combinations(combos, single_layers)
-    run_experiments(layers_combo)
+    file_name = 'results_salameh_repeat_train.json'
+    run_experiments(layers_combo, file_name)

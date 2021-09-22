@@ -254,7 +254,6 @@ class DialectIdentifier(object):
 
     def train(self, data_path=None,
               data_extra_path=None,
-              data_aggregated_path=None,
               level=None,
               char_ngram_range=(1, 3),
               word_ngram_range=(1, 1),
@@ -283,15 +282,11 @@ class DialectIdentifier(object):
             data_path = _TRAIN_DATA_PATH
         if data_extra_path is None:
             data_extra_path = _TRAIN_DATA_EXTRA_PATH
-        if data_aggregated_path is None:
-            data_aggregated_path = _TRAIN_DATA_AGGREGATED_PATH
         if level is None:
             level = 'city'
         # Load training data and extract
         train_data = pd.read_csv(data_path, sep='\t', header=0)
         train_data_extra = pd.read_csv(data_extra_path, sep='\t', header=0)
-        train_data_aggregated = pd.read_csv(
-            data_aggregated_path, sep='\t', header=0)
 
         y, x = df2dialectsentence(
             train_data, level, self.repeat_sentence_train)
@@ -324,8 +319,7 @@ class DialectIdentifier(object):
         print('Build and train aggreggated classifier')
         if self.aggregated_layers:
             for i in range(len(self.aggregated_layers)):
-                self.aggregated_layers[i].train(
-                    train_data_aggregated, self.repeat_sentence_train)
+                self.aggregated_layers[i].train(self.repeat_sentence_train)
 
         # Build and train main classifier
         print('Build and train main classifier')

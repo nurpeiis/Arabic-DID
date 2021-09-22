@@ -113,7 +113,8 @@ class LayerObject:
         char_ngram_range = (1, 3)
         word_ngram_range = (1, 1)
 
-        y, sentences = df2dialectsentence(df, self.level, repeat)
+        y, sentences = file2dialectsentence(
+            [self.train_path], self.level, repeat=repeat)
 
         # Build and train aggregated classifier
         self.label_encoder = LabelEncoder()

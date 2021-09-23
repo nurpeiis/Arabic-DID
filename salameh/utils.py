@@ -108,7 +108,7 @@ class LayerObject:
         # print(feats_matrix.shape)
         return feats_matrix
 
-    def train(self, df, repeat=0):
+    def train(self, repeat=0):
         n_jobs = None
         char_ngram_range = (1, 3)
         word_ngram_range = (1, 1)

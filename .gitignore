@@ -12,3 +12,5 @@
 *models/*
 predictions_*
 *.npz
+*salameh/*.json
+*salameh/*.tsv

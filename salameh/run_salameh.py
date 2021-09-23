@@ -21,9 +21,9 @@ def get_train_path(level):
     return ['aggregated_city/MADAR-Corpus-26-train.lines', f'../aggregated_data/{level}_train.tsv']
 
 
-def get_cols_train(level, file_name):
+def get_cols_train(level):
     cols = ['dialect_city_id', 'dialect_country_id', 'dialect_region_id']
-    if 'madar' in file_name.lower() or level == 'city':
+    if level == 'city':
         return cols
     elif level == 'country':
         return cols[1:]
@@ -49,7 +49,7 @@ def get_single_layer_list(level, kenlm_train, exclude_list, use_lm, use_distr):
                     dict_repr['use_lm'] = lm
                     dict_repr['use_distr'] = distr
                     dict_repr['cols_train'] = get_cols_train(
-                        level, train_path)
+                        level)
                     layers.append(dict_repr)
 
     return layers

@@ -102,7 +102,8 @@ To install python package run following command:
                                        
 ## Training idea:
 1. Use particular separate levels to have ripple carrying effect: Do this!!
-
+2. Check why Salameh is not the same as in paper
+3. When training on 
 
 ## Evaluation:
 

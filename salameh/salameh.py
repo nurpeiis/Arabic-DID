@@ -61,7 +61,7 @@ _TRAIN_DATA_AGGREGATED_PATH = os.path.join(
 
 _TRAIN_DATA_PATH = os.path.join(_DATA_DIR, 'MADAR-Corpus-26-train.lines')
 _TRAIN_DATA_EXTRA_PATH = os.path.join(_DATA_DIR, 'MADAR-Corpus-6-train.lines')
-_VAL_DATA_PATH = os.path.join(_DATA_DIR, 'MADAR-Corpus-26-val.lines')
+_VAL_DATA_PATH = os.path.join(_DATA_DIR, 'MADAR-Corpus-26-dev.lines')
 _TEST_DATA_PATH = os.path.join(_DATA_DIR, 'MADAR-Corpus-26-test.lines')
 
 
@@ -389,9 +389,10 @@ class DialectIdentifier(object):
 
         return levels_scores
 
-    def record_experiment(self, levels_score):
+    def record_experiment(self, test_results, val_results):
         final_record = {}
-        final_record['levels_score'] = levels_score
+        final_record['test_results'] = test_results
+        final_record['val_results'] = val_results
         final_record['exp_time'] = self.exp_time
         final_record['repeat_sentence_train'] = self.repeat_sentence_train
         final_record['repeat_sentence_eval'] = self.repeat_sentence_eval

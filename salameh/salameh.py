@@ -206,8 +206,10 @@ class DialectIdentifier(object):
     def _get_lm_feats(self, txt):
         word_lm_scores = self._get_word_lm_scores(txt).reshape(1, -1)
         word_lm_scores = _normalize_lm_scores(word_lm_scores)
+        #print('Word LM shape', word_lm_scores, word_lm_scores.shape)
         char_lm_scores = self._get_char_lm_scores(txt).reshape(1, -1)
         char_lm_scores = _normalize_lm_scores(char_lm_scores)
+        #print('Char LM shape', char_lm_scores, char_lm_scores.shape)
         feats = np.concatenate((word_lm_scores, char_lm_scores), axis=1)
         return feats
 

@@ -125,6 +125,7 @@ def run_experiments(layers_combo, file_name='results.json'):
 
 
 if __name__ == '__main__':
+    """
     levels = ['city', 'country', 'region']
     kenlm_train = False
     exclude_list = {'city': [[], ['msa-msa-msa']],
@@ -143,3 +144,6 @@ if __name__ == '__main__':
     layers_combo = get_layers_combinations(combos, single_layers)
     file_name = 'results_salameh_plus.json'
     run_experiments(layers_combo, file_name)
+    """
+    run_experiment(aggregated_layers=None, repeat_train=0,
+                   repeat_eval=0, file_name='results_aaa.json')

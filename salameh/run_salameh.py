@@ -2,16 +2,17 @@ from salameh import DialectIdentifier
 from utils import LayerObject
 
 
-def run_experiment(aggregated_layers=None, repeat_train=0, repeat_eval=0, file_name='results.json'):
+def run_experiment(aggregated_layers=None, repeat_train=0, repeat_eval=0, file_name='results.json', labels_test_save='labels_test.csv',
+                   labels_dev_save='labels_dev.csv'):
     print('Running Experiment')
     d = DialectIdentifier(result_file_name=file_name,
                           aggregated_layers=aggregated_layers,
                           repeat_sentence_eval=repeat_eval,
                           repeat_sentence_train=repeat_train)
     d.train()
-    test_scores = d.eval(data_set='TEST')
-    val_scores = d.eval(data_set='VALIDATION')
-    d.record_experiment(test_scores, val_scores)
+    test_scores = d.eval(data_set='TEST', save_labels=labels_test_save)
+    val_scores = d.eval(data_set='VALIDATION', save_labels=labels_dev_save)
+    print(d.record_experiment(test_scores, val_scores))
 
 
 def get_kenlm_train(level):
@@ -145,5 +146,28 @@ if __name__ == '__main__':
     file_name = 'results_salameh_plus.json'
     run_experiments(layers_combo, file_name)
     """
+
+    # run_experiment(aggregated_layers=None, repeat_train=0,
+    #               repeat_eval=0, file_name='results_aaa.json')
+    levels = ['city', 'country', 'region']
+    kenlm_train = False
+    exclude_list = {'city': [[], ['msa-msa-msa']],
+                    'country': [[], ['msa-msa']],
+                    'region': [[], ['msa']]}
+    use_lm = [True, False]
+    use_distr = [True, False]
+    single_layers = []
+    for level in levels:
+        layers = get_single_layer_list(
+            level, kenlm_train, exclude_list, use_lm, use_distr)
+        single_layers.append(layers)
+
+    combos = get_combo(levels)
+    # print(combos)
+    layers_combo = get_layers_combinations(combos, single_layers)
+    #print(layers_combo[0][2], layers_combo[0][3])
     run_experiment(aggregated_layers=None, repeat_train=0,
-                   repeat_eval=0, file_name='results_aaa.json')
+                   repeat_eval=0, file_name='results_sal.json', labels_test_save="labels_test_salameh.csv",  labels_dev_save="labels_dev_salameh.csv")
+    l = LayerObject(layers_combo[0][2][0])
+    run_experiment(aggregated_layers=[l], repeat_train=0,
+                   repeat_eval=0, file_name='results_sal+best.json', labels_test_save="labels_test_salameh.csv",  labels_dev_save="labels_dev_salameh.csv")

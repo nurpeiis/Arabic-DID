@@ -42,7 +42,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import normalize
 from camel_tools.tokenizers.word import simple_word_tokenize
 from camel_tools.utils.dediac import dediac_ar
-from utils import df2dialectsentence, levels_eval
+from utils import df2dialectsentence, levels_eval, file2dialectsentence
 import time
 import json
 
@@ -154,7 +154,8 @@ class DialectIdentifier(object):
                  aggregated_layers=None,
                  result_file_name=None,
                  repeat_sentence_train=0,
-                 repeat_sentence_eval=0):
+                 repeat_sentence_eval=0,
+                 extra_lm=False):
         self.exp_time = time.strftime('%Y%m%d-%H%M%S')
 
         if char_lm_dir is None:
@@ -182,6 +183,11 @@ class DialectIdentifier(object):
         self._word_lms = collections.defaultdict(kenlm.Model)
         self._load_lms(char_lm_dir, word_lm_dir)
 
+        self.extra_lm = extra_lm
+        self._char_lms_extra = collections.defaultdict(kenlm.Model)
+        self._word_lms_extra = collections.defaultdict(kenlm.Model)
+        self._load_lms_extra(char_lm_dir, word_lm_dir)
+
         self._is_trained = False
 
     def _load_lms(self, char_lm_dir, word_lm_dir):
@@ -193,6 +199,16 @@ class DialectIdentifier(object):
             word_lm_path = os.path.join(word_lm_dir, '{}.arpa'.format(label))
             self._char_lms[label] = kenlm.Model(char_lm_path, config)
             self._word_lms[label] = kenlm.Model(word_lm_path, config)
+
+    def _load_lms_extra(self, char_lm_dir, word_lm_dir):
+        config = kenlm.Config()
+        config.show_progress = False
+
+        for label in self._labels_extra:
+            char_lm_path = os.path.join(char_lm_dir, '{}.arpa'.format(label))
+            word_lm_path = os.path.join(word_lm_dir, '{}.arpa'.format(label))
+            self._char_lms_extra[label] = kenlm.Model(char_lm_path, config)
+            self._word_lms_extra[label] = kenlm.Model(word_lm_path, config)
 
     def _get_char_lm_scores(self, txt):
         chars = _word_to_char(txt)
@@ -221,6 +237,34 @@ class DialectIdentifier(object):
         feats_matrix = feats_matrix.reshape((-1, 52))
         return feats_matrix
 
+    def _get_char_lm_scores_extra(self, txt):
+        chars = _word_to_char(txt)
+        return np.array([self._char_lms_extra[label].score(chars, bos=True, eos=True)
+                         for label in self._labels_extra_sorted])
+
+    def _get_word_lm_scores_extra(self, txt):
+        return np.array([self._word_lms_extra[label].score(txt, bos=True, eos=True)
+                         for label in self._labels_extra_sorted])
+
+    def _get_lm_feats_extra(self, txt):
+        word_lm_scores_extra = self._get_word_lm_scores_extra(
+            txt).reshape(1, -1)
+        word_lm_scores_extra = _normalize_lm_scores(word_lm_scores_extra)
+        char_lm_scores_extra = self._get_char_lm_scores_extra(
+            txt).reshape(1, -1)
+        char_lm_scores_extra = _normalize_lm_scores(char_lm_scores_extra)
+        feats = np.concatenate(
+            (word_lm_scores_extra, char_lm_scores_extra), axis=1)
+        return feats
+
+    def _get_lm_feats_multi_extra(self, sentences):
+        feats_list = collections.deque()
+        for sentence in sentences:
+            feats_list.append(self._get_lm_feats_extra(sentence))
+        feats_matrix = np.array(feats_list)
+        feats_matrix = feats_matrix.reshape((-1, 12))
+        return feats_matrix
+
     def _prepare_sentences(self, sentences):
 
         # why use tokenization here, where in train we didn't use anything
@@ -229,7 +273,15 @@ class DialectIdentifier(object):
         sent_array = np.array(tokenized)
         x_trans = self._feat_union.transform(sent_array)
         x_trans_extra = self._feat_union_extra.transform(sent_array)
-        x_predict_extra = self._classifier_extra.predict_proba(x_trans_extra)
+        if self.extra_lm:
+            x_lm_feats = self._get_lm_feats_multi_extra(sentences)
+            x_final_extra = sp.sparse.hstack(
+                (x_trans_extra, x_lm_feats))
+            x_predict_extra = self._classifier_extra.predict_proba(
+                x_final_extra)
+        else:
+            x_predict_extra = x_trans_extra
+
         aggregated_prob_distrs = []
         aggregated_lm_feats = []
         # aggregated features
@@ -281,19 +333,16 @@ class DialectIdentifier(object):
         """
 
         if data_path is None:
-            data_path = _TRAIN_DATA_PATH
+            data_path = [_TRAIN_DATA_PATH]
         if data_extra_path is None:
-            data_extra_path = _TRAIN_DATA_EXTRA_PATH
+            data_extra_path = [_TRAIN_DATA_EXTRA_PATH]
         if level is None:
             level = 'city'
-        # Load training data and extract
-        train_data = pd.read_csv(data_path, sep='\t', header=0)
-        train_data_extra = pd.read_csv(data_extra_path, sep='\t', header=0)
 
-        y, x = df2dialectsentence(
-            train_data, level, self.repeat_sentence_train)
-        y_extra, x_extra = df2dialectsentence(
-            train_data_extra, level, self.repeat_sentence_train)
+        y, x = file2dialectsentence(
+            data_path, level, self.repeat_sentence_train)
+        y_extra, x_extra = file2dialectsentence(
+            data_extra_path, level, self.repeat_sentence_train)
 
         # Build and train extra classifier
         print('Build and train extra classifier')
@@ -312,10 +361,16 @@ class DialectIdentifier(object):
         self._feat_union_extra = FeatureUnion([('wordgrams', word_vectorizer),
                                                ('chargrams', char_vectorizer)])
         x_trans = self._feat_union_extra.fit_transform(x_extra)
+        if self.extra_lm:
+            x_lm_feats = self._get_lm_feats_multi_extra(x_extra)
+            x_final = sp.sparse.hstack(
+                (x_trans, x_lm_feats))
+        else:
+            x_final = x_trans
 
         self._classifier_extra = OneVsRestClassifier(MultinomialNB(),
                                                      n_jobs=n_jobs)
-        self._classifier_extra.fit(x_trans, y_trans)
+        self._classifier_extra.fit(x_final, y_trans)
 
         # Build and train aggreggated classifier
         print('Build and train aggreggated classifier')
@@ -348,7 +403,7 @@ class DialectIdentifier(object):
 
         self._is_trained = True
 
-    def eval(self, data_path=None, data_set='VALIDATION', level=None):
+    def eval(self, data_path=None, data_set='VALIDATION', level=None, save_labels='labels.csv'):
         """Evaluate the trained model on a given data set.
         Args:
             data_path (str, optional): Path to an evaluation data set.
@@ -369,23 +424,25 @@ class DialectIdentifier(object):
 
         if data_path is None:
             if data_set == 'VALIDATION':
-                data_path = _VAL_DATA_PATH
+                data_path = [_VAL_DATA_PATH]
             elif data_set == 'TEST':
-                data_path = _TEST_DATA_PATH
+                data_path = [_TEST_DATA_PATH]
             else:
                 raise InvalidDataSetError(data_set)
         if level is None:
             level = 'city'
-        # Load eval data
-        eval_data = pd.read_csv(data_path, sep='\t', header=0)
-        y_true, x = df2dialectsentence(
-            eval_data, level, self.repeat_sentence_eval)
+        y_true, x = file2dialectsentence(
+            data_path, level, self.repeat_sentence_eval)
 
         # Generate predictions
         x_prepared = self._prepare_sentences(x)
         y_pred = self._classifier.predict(x_prepared)
         # print(self._classifier.predict_proba(x_prepared))
         y_pred = self._label_encoder.inverse_transform(y_pred)
+        df = pd.DataFrame(columns=['gold', 'pred'])
+        df['gold'] = y_true
+        df['pred'] = y_pred
+        df.to_csv(save_labels, sep='\t', header=True, index=False)
         # Get scores
         levels_scores = levels_eval(y_true, y_pred, level)
 
@@ -442,9 +499,11 @@ class DialectIdentifier(object):
 
 
 if __name__ == '__main__':
-    for i in range(3):
-        d = DialectIdentifier(repeat_sentence_eval=i,
-                              result_file_name='love.json')
-        d.train()
-        scores = d.eval(data_set='TEST')
-        d.record_experiment(scores)
+    d = DialectIdentifier(
+        result_file_name='love.json')
+    d.train()
+    scores = d.eval(data_set='TEST')
+    dev = d.eval()
+    print(scores)
+    print('val', dev)
+    # d.record_experiment(scores)

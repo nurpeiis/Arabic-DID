@@ -134,7 +134,7 @@ _CHAR_LM_DIR = Path(_DATA_DIR, 'lm', 'char')
 _WORD_LM_DIR = Path(_DATA_DIR, 'lm', 'word')
 _TRAIN_DATA_PATH = Path(_DATA_DIR, 'corpus_26_train.tsv')
 _TRAIN_DATA_EXTRA_PATH = Path(_DATA_DIR, 'corpus_6_train.tsv')
-_DEV_DATA_PATH = Path(_DATA_DIR, 'corpus_26_dev.tsv')
+_DEV_DATA_PATH = Path(_DATA_DIR, 'corpus_26_val.tsv')
 _TEST_DATA_PATH = Path(_DATA_DIR, 'corpus_26_test.tsv')
 
 
@@ -390,6 +390,7 @@ class DialectIdentifier(object):
         y_extra = train_data_extra['dialect'].values
 
         # Build and train extra classifier
+        print('Build and train extra classifier')
         self._label_encoder_extra = LabelEncoder()
         self._label_encoder_extra.fit(y_extra)
         y_trans = self._label_encoder_extra.transform(y_extra)
@@ -411,6 +412,7 @@ class DialectIdentifier(object):
         self._classifier_extra.fit(x_trans, y_trans)
 
         # Build and train main classifier
+        print('Build and train main classifier')
         self._label_encoder = LabelEncoder()
         self._label_encoder.fit(y)
         y_trans = self._label_encoder.transform(y)
@@ -473,7 +475,7 @@ class DialectIdentifier(object):
         did_pred_city = [d.top for d in did_pred]
         did_pred_country = [d.top for d in map(label_to_country, did_pred)]
         did_pred_region = [d.top for d in map(label_to_region, did_pred)]
-
+        print(len(did_pred_city), len(did_true_city))
         # Get scores
         scores = {
             'city': {
@@ -630,4 +632,5 @@ if __name__ == '__main__':
     d = DialectIdentifier()
     d.train()
     scores = d.eval(data_set='TEST')
+    val_scores = d.eval(data_set='DEV')
     print(scores)

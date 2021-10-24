@@ -273,14 +273,16 @@ class DialectIdentifier(object):
         sent_array = np.array(tokenized)
         x_trans = self._feat_union.transform(sent_array)
         x_trans_extra = self._feat_union_extra.transform(sent_array)
+        x_final_extra = x_trans_extra
+        # TODO:  Explore bug where just adding extra ngram layer improves accuracy significcantly
+        #x_predict_extra = x_trans_extra
         if self.extra_lm:
+            print('I  am  hererehfbqweobq')
             x_lm_feats = self._get_lm_feats_multi_extra(sentences)
             x_final_extra = sp.sparse.hstack(
                 (x_trans_extra, x_lm_feats))
-            x_predict_extra = self._classifier_extra.predict_proba(
-                x_final_extra)
-        else:
-            x_predict_extra = x_trans_extra
+        x_predict_extra = self._classifier_extra.predict_proba(
+            x_final_extra)
 
         aggregated_prob_distrs = []
         aggregated_lm_feats = []
@@ -294,7 +296,7 @@ class DialectIdentifier(object):
 
         x_lm_feats = self._get_lm_feats_multi(sentences)
         x_final = sp.sparse.hstack(
-            (x_trans, x_lm_feats, x_predict_extra))
+            (x_trans, x_lm_feats))
 
         if self.aggregated_layers:
             for i in range(len(self.aggregated_layers)):
@@ -361,12 +363,11 @@ class DialectIdentifier(object):
         self._feat_union_extra = FeatureUnion([('wordgrams', word_vectorizer),
                                                ('chargrams', char_vectorizer)])
         x_trans = self._feat_union_extra.fit_transform(x_extra)
+        x_final = x_trans
         if self.extra_lm:
             x_lm_feats = self._get_lm_feats_multi_extra(x_extra)
             x_final = sp.sparse.hstack(
                 (x_trans, x_lm_feats))
-        else:
-            x_final = x_trans
 
         self._classifier_extra = OneVsRestClassifier(MultinomialNB(),
                                                      n_jobs=n_jobs)
@@ -442,6 +443,7 @@ class DialectIdentifier(object):
         df = pd.DataFrame(columns=['gold', 'pred'])
         df['gold'] = y_true
         df['pred'] = y_pred
+        print(len(y_pred), len(y_true))
         df.to_csv(save_labels, sep='\t', header=True, index=False)
         # Get scores
         levels_scores = levels_eval(y_true, y_pred, level)

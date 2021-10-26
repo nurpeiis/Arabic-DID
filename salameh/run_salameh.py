@@ -3,13 +3,13 @@ from utils import LayerObject
 
 
 def run_experiment(aggregated_layers=None, repeat_train=0, repeat_eval=0, file_name='results.json', labels_test_save='labels_test.csv',
-                   labels_dev_save='labels_dev.csv'):
+                   labels_dev_save='labels_dev.csv', data_train_path=None):
     print('Running Experiment')
     d = DialectIdentifier(result_file_name=file_name,
                           aggregated_layers=aggregated_layers,
                           repeat_sentence_eval=repeat_eval,
                           repeat_sentence_train=repeat_train)
-    d.train()
+    d.train(data_path=data_train_path)
     test_scores = d.eval(data_set='TEST', save_labels=labels_test_save)
     val_scores = d.eval(data_set='VALIDATION', save_labels=labels_dev_save)
     d.record_experiment(test_scores, val_scores)
@@ -166,9 +166,17 @@ if __name__ == '__main__':
     combos = get_combo(levels)
     # print(combos)
     layers_combo = get_layers_combinations(combos, single_layers)
-    #print(layers_combo[0][2], layers_combo[0][3])
+    # print(layers_combo[0][2], layers_combo[0][3])
+    """
     run_experiment(aggregated_layers=None, repeat_train=0,
-                   repeat_eval=0, file_name='results_sal.json', labels_test_save="labels_test_salameh.csv",  labels_dev_save="labels_dev_salameh.csv")
-    #l = LayerObject(layers_combo[0][2][0])
-    # run_experiment(aggregated_layers=[l], repeat_train=0,
-    #               repeat_eval=0, file_name='results_sal+best.json', labels_test_save="labels_test_salameh.csv",  labels_dev_save="labels_dev_salameh.csv")
+                   repeat_eval=0, file_name='results_sal_agg.json',
+                   labels_test_save="labels_test_salameh_agg.csv",  labels_dev_save="labels_dev_salameh_agg.csv",
+                   data_train_path=['data/MADAR-Corpus-26-train.lines', 'data/MADAR-Corpus-26-dev.lines', 'data/MADAR-Corpus-26-test.lines'])
+    """
+    run_experiment(aggregated_layers=None, repeat_train=0,
+                   repeat_eval=0, file_name='results_sal_agg.json',
+                   labels_test_save="camel.tsv",  labels_dev_save="labels_dev_salameh_agg.csv")
+
+    l = LayerObject(layers_combo[0][2][0])
+    run_experiment(aggregated_layers=[l], repeat_train=0,
+                   repeat_eval=0, file_name='results_sal+best.json', labels_test_save="camel_region.tsv",  labels_dev_save="labels_dev_salameh.csv")

@@ -296,7 +296,7 @@ class DialectIdentifier(object):
 
         x_lm_feats = self._get_lm_feats_multi(sentences)
         x_final = sp.sparse.hstack(
-            (x_trans, x_lm_feats))
+            (x_trans, x_lm_feats, x_predict_extra))
 
         if self.aggregated_layers:
             for i in range(len(self.aggregated_layers)):

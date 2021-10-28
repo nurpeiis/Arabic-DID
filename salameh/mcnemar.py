@@ -75,6 +75,8 @@ def run_test(system_a, system_b, gold):
     significance = 'NOT SIGNIFICANT' if pvalue > alpha else 'SIGNIFICANT'
     print(f'{system_a[0]}\t{system_b[0]}\t{significance}\t{pvalue}')
 
+# TODO: country and region level
+
 
 def file_run(file_a, file_b):
     df_a = pd.read_csv(file_a, sep='\t', header=0)

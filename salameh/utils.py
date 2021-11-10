@@ -21,15 +21,20 @@ class LayerObject:
 
         self.dict_repr = dict_repr
         self.level = dict_repr['level']
-        self.data_dir = os.path.join(
-            os.path.dirname(__file__), f'aggregated_{self.level}')
+        if 'data_dir' not in self.dict_repr:
+            self.data_dir = os.path.join(
+                os.path.dirname(__file__), f'aggregated_{self.level}')
+        else:
+            self.data_dir = self.dict_repr['data_dir']
         self.kenlm_train = dict_repr['kenlm_train']
         self.kenlm_train_files = dict_repr['kenlm_train_files']
         self.exclude_list = dict_repr['exclude_list']
 
         # kenlm was not trained yet or we would like to train from scratch
         if not os.path.exists(self.data_dir) or self.kenlm_train:
+            print('In KenLM Process')
             self.kenlm_process()
+            print('Done KenLM')
 
         self.char_lm_dir = os.path.join(self.data_dir, 'lm', 'char')
         self.word_lm_dir = os.path.join(self.data_dir, 'lm', 'word')

@@ -155,7 +155,8 @@ class DialectIdentifier(object):
                  result_file_name=None,
                  repeat_sentence_train=0,
                  repeat_sentence_eval=0,
-                 extra_lm=False):
+                 extra_lm=False,
+                 extra=True):
         self.exp_time = time.strftime('%Y%m%d-%H%M%S')
 
         if char_lm_dir is None:
@@ -184,9 +185,11 @@ class DialectIdentifier(object):
         self._load_lms(char_lm_dir, word_lm_dir)
 
         self.extra_lm = extra_lm
+        self.extra = extra
         self._char_lms_extra = collections.defaultdict(kenlm.Model)
         self._word_lms_extra = collections.defaultdict(kenlm.Model)
-        self._load_lms_extra(char_lm_dir, word_lm_dir)
+        if extra:
+            self._load_lms_extra(char_lm_dir, word_lm_dir)
 
         self._is_trained = False
 
@@ -234,7 +237,7 @@ class DialectIdentifier(object):
         for sentence in sentences:
             feats_list.append(self._get_lm_feats(sentence))
         feats_matrix = np.array(feats_list)
-        feats_matrix = feats_matrix.reshape((-1, 52))
+        feats_matrix = feats_matrix.reshape((-1, 2*len(self._labels)))
         return feats_matrix
 
     def _get_char_lm_scores_extra(self, txt):
@@ -262,7 +265,7 @@ class DialectIdentifier(object):
         for sentence in sentences:
             feats_list.append(self._get_lm_feats_extra(sentence))
         feats_matrix = np.array(feats_list)
-        feats_matrix = feats_matrix.reshape((-1, 12))
+        feats_matrix = feats_matrix.reshape((-1, 2*len(self._labels_extra)))
         return feats_matrix
 
     def _prepare_sentences(self, sentences):
@@ -272,17 +275,17 @@ class DialectIdentifier(object):
                      for s in sentences]
         sent_array = np.array(tokenized)
         x_trans = self._feat_union.transform(sent_array)
-        x_trans_extra = self._feat_union_extra.transform(sent_array)
-        x_final_extra = x_trans_extra
+        if self.extra:
+            x_trans_extra = self._feat_union_extra.transform(sent_array)
+            x_final_extra = x_trans_extra
         # TODO:  Explore bug where just adding extra ngram layer improves accuracy significcantly
         #x_predict_extra = x_trans_extra
-        if self.extra_lm:
-            print('I  am  hererehfbqweobq')
-            x_lm_feats = self._get_lm_feats_multi_extra(sentences)
-            x_final_extra = sp.sparse.hstack(
-                (x_trans_extra, x_lm_feats))
-        x_predict_extra = self._classifier_extra.predict_proba(
-            x_final_extra)
+            if self.extra_lm:
+                x_lm_feats = self._get_lm_feats_multi_extra(sentences)
+                x_final_extra = sp.sparse.hstack(
+                    (x_trans_extra, x_lm_feats))
+            x_predict_extra = self._classifier_extra.predict_proba(
+                x_final_extra)
 
         aggregated_prob_distrs = []
         aggregated_lm_feats = []
@@ -296,7 +299,10 @@ class DialectIdentifier(object):
 
         x_lm_feats = self._get_lm_feats_multi(sentences)
         x_final = sp.sparse.hstack(
-            (x_trans, x_lm_feats, x_predict_extra))
+            (x_trans, x_lm_feats))
+        if self.extra:
+            x_final = sp.sparse.hstack(
+                (x_final, x_predict_extra))
 
         if self.aggregated_layers:
             for i in range(len(self.aggregated_layers)):
@@ -336,42 +342,45 @@ class DialectIdentifier(object):
 
         if data_path is None:
             data_path = [_TRAIN_DATA_PATH]
-        if data_extra_path is None:
+        if data_extra_path is None and self.extra:
             data_extra_path = [_TRAIN_DATA_EXTRA_PATH]
         if level is None:
             level = 'city'
 
         y, x = file2dialectsentence(
             data_path, level, self.repeat_sentence_train)
-        y_extra, x_extra = file2dialectsentence(
-            data_extra_path, level, self.repeat_sentence_train)
+        if self.extra:
+            y_extra, x_extra = file2dialectsentence(
+                data_extra_path, level, self.repeat_sentence_train)
 
         # Build and train extra classifier
-        print('Build and train extra classifier')
-        self._label_encoder_extra = LabelEncoder()
-        self._label_encoder_extra.fit(y_extra)
-        y_trans = self._label_encoder_extra.transform(y_extra)
+        if self.extra:
+            print('Build and train extra classifier')
 
-        word_vectorizer = TfidfVectorizer(lowercase=False,
-                                          ngram_range=word_ngram_range,
-                                          analyzer='word',
-                                          tokenizer=lambda x: x.split(' '))
-        char_vectorizer = TfidfVectorizer(lowercase=False,
-                                          ngram_range=char_ngram_range,
-                                          analyzer='char',
-                                          tokenizer=lambda x: x.split(' '))
-        self._feat_union_extra = FeatureUnion([('wordgrams', word_vectorizer),
-                                               ('chargrams', char_vectorizer)])
-        x_trans = self._feat_union_extra.fit_transform(x_extra)
-        x_final = x_trans
-        if self.extra_lm:
-            x_lm_feats = self._get_lm_feats_multi_extra(x_extra)
-            x_final = sp.sparse.hstack(
-                (x_trans, x_lm_feats))
+            self._label_encoder_extra = LabelEncoder()
+            self._label_encoder_extra.fit(y_extra)
+            y_trans = self._label_encoder_extra.transform(y_extra)
 
-        self._classifier_extra = OneVsRestClassifier(MultinomialNB(),
-                                                     n_jobs=n_jobs)
-        self._classifier_extra.fit(x_final, y_trans)
+            word_vectorizer = TfidfVectorizer(lowercase=False,
+                                              ngram_range=word_ngram_range,
+                                              analyzer='word',
+                                              tokenizer=lambda x: x.split(' '))
+            char_vectorizer = TfidfVectorizer(lowercase=False,
+                                              ngram_range=char_ngram_range,
+                                              analyzer='char',
+                                              tokenizer=lambda x: x.split(' '))
+            self._feat_union_extra = FeatureUnion([('wordgrams', word_vectorizer),
+                                                   ('chargrams', char_vectorizer)])
+            x_trans = self._feat_union_extra.fit_transform(x_extra)
+            x_final = x_trans
+            if self.extra_lm:
+                x_lm_feats = self._get_lm_feats_multi_extra(x_extra)
+                x_final = sp.sparse.hstack(
+                    (x_trans, x_lm_feats))
+
+            self._classifier_extra = OneVsRestClassifier(MultinomialNB(),
+                                                         n_jobs=n_jobs)
+            self._classifier_extra.fit(x_final, y_trans)
 
         # Build and train aggreggated classifier
         print('Build and train aggreggated classifier')

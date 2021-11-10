@@ -117,3 +117,20 @@ To install python package run following command:
   - Madar extra vs All other city level data
 
 -  Generate table data with all variables
+
+
+
+## LREC TODOs
+
+- Deadline: January 10, need to do before grad
+- Documentation needs to improved about the data collection structure
+- Include negative results from BERT
+- Much better visualization of data required, i.e. all the other features
+- Potentially check results on other datasets
+- For every word we give statistical distribution of each dialects at each level 
+- Share ngrams instead of data - Google NGRAMS (TODO: need to check out for camel)
+- Common uni, bi, tri gram and additional columns for different features. How many times this appeared in certain dialect, certain collections way (ngram, all, city_dialect_a, city_dialect_b..., country_dialect, region_dialect_a)
+- Examples of correct results  and not correct in CAMeL
+- ONE EXPERIMENT: Other datasets such as NADI
+  - Create ngram
+  

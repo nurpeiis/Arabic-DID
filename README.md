@@ -134,3 +134,15 @@ To install python package run following command:
 - ONE EXPERIMENT: Other datasets such as NADI
   - Create ngram
   
+
+## Paper TODOs
+
+- More data features per dataset, share sheet with all feeatures, city, country and region labels. Table 1 include as it was  
+- Include full name of geographical locations
+- Include figure caption
+- Get stats on ngram? Does it matter. No, most likely include number of sentences, number of words, and say that you also created character ngram. KenLM
+  - Get to know how KenLM generates 
+  - Reegenerate LM -> counts and prob_distr that we used while reporting the results
+
+- NADI report on various levels
+  

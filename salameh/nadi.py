@@ -12,7 +12,7 @@ def create_lm():
     layer = LayerObject(layer_dict)
 
 
-if __name__ == '__main__':
+def nadi():
     nadi_dir = 'nadi_data/'
     labels = [i[:-4] for i in os.listdir(f'{nadi_dir}char')]
     print(labels)
@@ -30,3 +30,33 @@ if __name__ == '__main__':
     d.train(data_path=[f'{nadi_dir}train_labeled.lines'])
     scores = d.eval(data_path=[f'{nadi_dir}dev_labeled.lines'])
     print(scores)
+
+
+def nadi_level(level):
+    layer_dict = {'level': f'{level}', 'data_dir': f'aggregated_{level}', 'kenlm_train': False,
+                  'kenlm_train_files': ['nadi_data/train_labeled.lines'], 'exclude_list': [],
+                  'train_path': 'nadi_data/train_labeled.lines', 'use_lm': False, 'use_distr': True, 'cols_train': get_cols_train('region')}
+
+    layer = LayerObject(layer_dict)
+    nadi_dir = 'nadi_data/'
+    labels = [i[:-4] for i in os.listdir(f'{nadi_dir}char')]
+    print(labels)
+    d = DialectIdentifier(
+        labels=labels,
+        labels_extra=[layer],
+        char_lm_dir=f'{nadi_dir}lm/char',
+        word_lm_dir=f'{nadi_dir}lm/word',
+        aggregated_layers=[layer],
+        result_file_name=None,
+        repeat_sentence_train=0,
+        repeat_sentence_eval=0,
+        extra_lm=False,
+        extra=False)
+    d.train(data_path=[f'{nadi_dir}train_labeled.lines'])
+    scores = d.eval(data_path=[f'{nadi_dir}dev_labeled.lines'])
+    print(level, scores)
+
+
+if __name__ == '__main__':
+    nadi_level('country')
+    nadi_level('region')

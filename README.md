@@ -141,7 +141,8 @@ To install python package run following command:
 - Include full name of geographical locations
 - Include figure caption
 - Get stats on ngram? Does it matter. No, most likely include number of sentences, number of words, and say that you also created character ngram. KenLM
-  - Get to know how KenLM generates 
+  - Get to know how KenLM generates - Unable to do so, KenLM has only prob_distr
+  - Compute counts yourself or use SRILM and LM from SRILM
   - Reegenerate LM -> counts and prob_distr that we used while reporting the results
 
 - NADI report on various levels

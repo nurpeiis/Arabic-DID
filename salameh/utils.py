@@ -302,16 +302,19 @@ def whole_process(level, train_files):
     create_directory(folder)
     print('Putting each dialect into file')
     dialect_dict2file(dialect_dict, folder)
+    """
     print('Creating KenLM for each dialect')
     dialect_dict_to_lm(dialect_dict, folder)
+    """
     end = timeit.default_timer()
     print('Finished in ', end - start)
 
 
 if __name__ == '__main__':
-    level = 'region'
+    level = 'country'
     train_files = [f'../aggregated_data/{level}_train.tsv']
-    # whole_process(level, train_files)
-
+    whole_process(level, train_files)
+    """
     layer = LayerObject(level, False, train_files,
                         [], 'aggregate_city/MADAR-Corpus-26-train.lines', None, None)
+    """

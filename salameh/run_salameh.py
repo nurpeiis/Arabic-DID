@@ -126,6 +126,38 @@ def run_experiments(layers_combo, file_name='results.json'):
                         aggregated_layers, repeat_train=repeat_train, repeat_eval=repeat_eval, file_name=file_name)
 
 
+def layers_combo_experiment(layers_combo):
+
+    region = layers_combo[0][2][0]
+    country = layers_combo[1][2][0]
+    city = layers_combo[2][2][0]
+
+    #city + country
+    city_layer = LayerObject(city)
+    country_layer = LayerObject(country)
+    run_experiment(aggregated_layers=[city_layer, country_layer], repeat_train=0,
+                   repeat_eval=0, file_name='layers_combo.json', labels_test_save="city_country_combo_test.tsv",  labels_dev_save="city_country_combo_dev.csv")
+
+    #city + region
+    city_layer = LayerObject(city)
+    region_layer = LayerObject(region)
+    run_experiment(aggregated_layers=[city_layer, region_layer], repeat_train=0,
+                   repeat_eval=0, file_name='layers_combo.json', labels_test_save="city_region_combo_test.tsv",  labels_dev_save="city_region_combo_dev.csv")
+
+    #region + country
+    region_layer = LayerObject(region)
+    country_layer = LayerObject(country)
+    run_experiment(aggregated_layers=[region_layer, country_layer], repeat_train=0,
+                   repeat_eval=0, file_name='layers_combo.json', labels_test_save="region_country_combo_test.tsv",  labels_dev_save="region_country_combo_dev.csv")
+
+    #city + country + region
+    city_layer = LayerObject(city)
+    country_layer = LayerObject(country)
+    region_layer = LayerObject(region)
+    run_experiment(aggregated_layers=[city_layer, country_layer, region_layer], repeat_train=0,
+                   repeat_eval=0, file_name='layers_combo.json', labels_test_save="city_country_region_combo_test.tsv",  labels_dev_save="city_country_region_combo_dev.csv")
+
+
 if __name__ == '__main__':
     """
     levels = ['city', 'country', 'region']
@@ -166,17 +198,20 @@ if __name__ == '__main__':
     combos = get_combo(levels)
     # print(combos)
     layers_combo = get_layers_combinations(combos, single_layers)
-    # print(layers_combo[0][2], layers_combo[0][3])
+
+    layers_combo_experiment(layers_combo)
     """
     run_experiment(aggregated_layers=None, repeat_train=0,
                    repeat_eval=0, file_name='results_sal_agg.json',
                    labels_test_save="labels_test_salameh_agg.csv",  labels_dev_save="labels_dev_salameh_agg.csv",
                    data_train_path=['data/MADAR-Corpus-26-train.lines', 'data/MADAR-Corpus-26-dev.lines', 'data/MADAR-Corpus-26-test.lines'])
-    """
+
     run_experiment(aggregated_layers=None, repeat_train=0,
                    repeat_eval=0, file_name='results_sal_agg.json',
                    labels_test_save="camel.tsv",  labels_dev_save="labels_dev_salameh_agg.csv")
 
     l = LayerObject(layers_combo[0][2][0])
+    l = LayerObject(layers_combo[0][2][0])
     run_experiment(aggregated_layers=[l], repeat_train=0,
                    repeat_eval=0, file_name='results_sal+best.json', labels_test_save="camel_region.tsv",  labels_dev_save="labels_dev_salameh.csv")
+    """

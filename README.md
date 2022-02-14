@@ -137,6 +137,12 @@ To install python package run following command:
 
 ## Paper TODOs
 
+- Gzip +   
+
+
+
+
+
 - More data features per dataset, share sheet with all feeatures, city, country and region labels. Table 1 include as it was  
 - Include full name of geographical locations
 - Include figure caption

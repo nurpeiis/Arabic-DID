@@ -1,17 +1,24 @@
 from salameh import DialectIdentifier
+from salameh import ADIDA_LABELS
 from utils import LayerObject
+import os
 
 
-def run_experiment(aggregated_layers=None, repeat_train=0, repeat_eval=0, file_name='results.json', labels_test_save='labels_test.csv',
-                   labels_dev_save='labels_dev.csv', data_train_path=None):
+def run_experiment(aggregated_layers=None, repeat_train=0, repeat_eval=0,
+                   file_name='results.json', labels_test_save='labels_test.csv', labels_dev_save='labels_dev.csv',
+                   char_lm_dir=None, word_lm_dir=None, extra=True,
+                   data_train_path=None, data_test_path='TEST', data_dev_path='VALIDATION', labels=ADIDA_LABELS):
     print('Running Experiment')
     d = DialectIdentifier(result_file_name=file_name,
                           aggregated_layers=aggregated_layers,
                           repeat_sentence_eval=repeat_eval,
-                          repeat_sentence_train=repeat_train)
+                          repeat_sentence_train=repeat_train,
+                          char_lm_dir=char_lm_dir,
+                          word_lm_dir=word_lm_dir,
+                          extra=extra, labels=labels)
     d.train(data_path=data_train_path)
-    test_scores = d.eval(data_set='TEST', save_labels=labels_test_save)
-    val_scores = d.eval(data_set='VALIDATION', save_labels=labels_dev_save)
+    test_scores = d.eval(data_set=data_test_path, save_labels=labels_test_save)
+    val_scores = d.eval(data_set=data_dev_path, save_labels=labels_dev_save)
     d.record_experiment(test_scores, val_scores)
     print(test_scores, val_scores)
 
@@ -158,6 +165,18 @@ def layers_combo_experiment(layers_combo):
                    repeat_eval=0, file_name='layers_combo.json', labels_test_save="city_country_region_combo_test.tsv",  labels_dev_save="city_country_region_combo_dev.csv")
 
 
+def run_aggregated_experiment(level):
+    print(f'Aggregated experiment on {level} level')
+    labels = [i[:-5]
+              for i in os.listdir(f'aggregated_{level}/lm/char') if 'arpa' in i]
+    run_experiment(aggregated_layers=None, repeat_train=0,
+                   repeat_eval=0, file_name='aggregated_result.json',
+                   labels_test_save=f'labels_agg_{level}_test.csv', labels_dev_save=f'labels_agg_{level}_dev.csv',
+                   char_lm_dir=f'aggregated_{level}/lm/char', word_lm_dir=f'aggregated_{level}/lm/word',
+                   extra=False, data_train_path=[f'../aggregated_data/{level}_train.tsv'],
+                   data_test_path=[f'../aggregated_data/{level}_test.tsv'], data_dev_path=[f'../aggregated_data/{level}_dev.tsv'], labels=labels)
+
+
 if __name__ == '__main__':
     """
     levels = ['city', 'country', 'region']
@@ -198,9 +217,15 @@ if __name__ == '__main__':
     combos = get_combo(levels)
     # print(combos)
     layers_combo = get_layers_combinations(combos, single_layers)
-
-    layers_combo_experiment(layers_combo)
+    # Aggregated layer experiment
+    run_aggregated_experiment('city')
+    run_aggregated_experiment('country')
+    run_aggregated_experiment('region')
     """
+    # Layers combo experiment
+    layers_combo_experiment(layers_combo)
+    
+    #Usual expriments
     run_experiment(aggregated_layers=None, repeat_train=0,
                    repeat_eval=0, file_name='results_sal_agg.json',
                    labels_test_save="labels_test_salameh_agg.csv",  labels_dev_save="labels_dev_salameh_agg.csv",

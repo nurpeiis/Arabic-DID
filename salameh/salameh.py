@@ -42,7 +42,8 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import normalize
 from camel_tools.tokenizers.word import simple_word_tokenize
 from camel_tools.utils.dediac import dediac_ar
-from utils import df2dialectsentence, levels_eval, file2dialectsentence
+from utils import levels_eval, file2dialectsentence, df2dialect, get_label_space, transform_labels
+from onlinetfidf import OnlineTfidfVectorizer
 import time
 import json
 
@@ -314,6 +315,77 @@ class DialectIdentifier(object):
                         (x_final, aggregated_lm_feats[i]))
         return x_final
 
+    def train_chunks(self, data_path=None,
+                     level=None,
+                     char_ngram_range=(1, 3),
+                     word_ngram_range=(1, 1),
+                     n_jobs=None):
+        """Trains the model on a given data set.
+        Args:
+            data_path (str, optional): Path to main training data. If None, use
+                the provided training data.
+                Defaults to None.
+            char_ngram_range (tuple, optional): The n-gram ranges to consider
+                in the character-based language models.
+                Defaults to (1, 3).
+            word_ngram_range (tuple, optional): The n-gram ranges to consider
+                in the word-based language models.
+                Defaults to (1, 1).
+            n_jobs (int, optional): The number of parallel jobs to use for
+                computation. If None, then only 1 job is used. If -1 then all
+                processors are used.
+                Defaults to None.
+
+        """
+
+        if data_path is None:
+            data_path = [_TRAIN_DATA_PATH]
+        if level is None:
+            level = 'city'
+        self._label_dict = get_label_space(level)
+        self._classifier = OneVsRestClassifier(MultinomialNB(), n_jobs=n_jobs)
+
+        print('Online TfidfVectorizer')
+        word_vectorizer = OnlineTfidfVectorizer(lowercase=False,
+                                                ngram_range=word_ngram_range,
+                                                analyzer='word',
+                                                tokenizer=lambda x: x.split(' '))
+        char_vectorizer = OnlineTfidfVectorizer(lowercase=False,
+                                                ngram_range=char_ngram_range,
+                                                analyzer='char',
+                                                tokenizer=lambda x: x.split(' '))
+        chunksize = 10 ** 6
+        counter = 0
+        for chunk in pd.read_csv(data_path, sep='\t', header=0, chunksize=chunksize):
+            x = chunk['original_sentence'].tolist()
+            if counter != 0:
+                word_vectorizer.partial_refit(x)
+                char_vectorizer.partial_refit(x)
+            else:
+                word_vectorizer.fit(x)
+                char_vectorizer.fit(x)
+            counter += 1
+
+        self._feat_union = FeatureUnion([('wordgrams', word_vectorizer),
+                                         ('chargrams', char_vectorizer)])
+
+        for chunk in pd.read_csv(data_path, sep='\t', header=0, chunksize=chunksize):
+            x = chunk['original_sentence'].tolist()
+            y = df2dialect(chunk, level)
+            y = transform_labels(y, self._label_dict)
+            self._classifier.partial_fit(x, y)
+        # Build and train main classifier
+        print('Build and train main classifier')
+        self._label_encoder = LabelEncoder()
+        self._label_encoder.fit(y)
+        y_trans = self._label_encoder.transform(y)
+
+        x_prepared = self._prepare_sentences(x)
+
+        self._classifier.fit(x_prepared, y_trans)
+
+        self._is_trained = True
+
     def train(self, data_path=None,
               data_extra_path=None,
               level=None,
@@ -338,6 +410,7 @@ class DialectIdentifier(object):
                 computation. If None, then only 1 job is used. If -1 then all
                 processors are used.
                 Defaults to None.
+
         """
 
         if data_path is None:
@@ -414,6 +487,52 @@ class DialectIdentifier(object):
         self._is_trained = True
 
     def eval(self, data_path=None, data_set='VALIDATION', level=None, save_labels='labels.csv'):
+        """Evaluate the trained model on a given data set.
+        Args:
+            data_path (str, optional): Path to an evaluation data set.
+                If None, use one of the provided data sets instead.
+                Defaults to None.
+            data_set (str, optional): Name of the provided data set to use.
+                This is ignored if data_path is not None. Can be either
+                'VALIDATION' or 'TEST'. Defaults to 'VALIDATION'.
+        Returns:
+            dict: A dictionary mapping an evaluation metric to its computed
+            value. The metrics used are accuracy, f1_micro, f1_macro,
+            recall_micro, recall_macro, precision_micro and precision_macro.
+        """
+
+        if not self._is_trained:
+            raise UntrainedModelError(
+                'Can\'t evaluate an untrained model.')
+
+        if data_path is None:
+            if data_set == 'VALIDATION':
+                data_path = [_VAL_DATA_PATH]
+            elif data_set == 'TEST':
+                data_path = [_TEST_DATA_PATH]
+            else:
+                raise InvalidDataSetError(data_set)
+        if level is None:
+            level = 'city'
+        y_true, x = file2dialectsentence(
+            data_path, level, self.repeat_sentence_eval)
+
+        # Generate predictions
+        x_prepared = self._prepare_sentences(x)
+        y_pred = self._classifier.predict(x_prepared)
+        # print(self._classifier.predict_proba(x_prepared))
+        y_pred = self._label_encoder.inverse_transform(y_pred)
+        df = pd.DataFrame(columns=['gold', 'pred'])
+        df['gold'] = y_true
+        df['pred'] = y_pred
+        print(len(y_pred), len(y_true))
+        df.to_csv(save_labels, sep='\t', header=True, index=False)
+        # Get scores
+        levels_scores = levels_eval(y_true, y_pred, level)
+
+        return levels_scores
+
+    def eval_chunk(self, data_path=None, data_set='VALIDATION', level=None, save_labels='labels.csv'):
         """Evaluate the trained model on a given data set.
         Args:
             data_path (str, optional): Path to an evaluation data set.

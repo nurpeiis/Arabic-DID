@@ -217,6 +217,15 @@ def word_to_char(txt):
     return ' '.join(list(txt.replace(' ', 'X')))
 
 
+def file2dialectsentence_chunks(files, level, repeat=0, chunksize=1000000):
+    dfs = pd.read_csv(files[0], sep='\t', header=0, chunksize=chunksize)
+    for i in range(1, len(files)):
+        additional_dfs = pd.read_csv(
+            files[i], sep='\t', header=0,  chunksize=chunksize)
+
+    return df2dialectsentence(df, level, repeat)
+
+
 def file2dialectsentence(files, level, repeat=0):
     df = pd.read_csv(files[0], sep='\t', header=0)
     for i in range(1, len(files)):
@@ -237,6 +246,22 @@ def df2dialectsentence(df, level, repeat=0):
 
     dialect_list = df2dialect(df, level)
     return dialect_list, sentence_list
+
+
+def get_label_space(level):
+    label_space = {}
+    with open(f'../labels/{level}_label_id.txt') as f:
+        lines = f.readlines()
+        for line in lines:
+            label, index = line.split(',')
+            label_space[label.replace(' ', '-')] = int(index.replace('\n', ''))
+
+    return label_space
+
+
+def transform_labels(list_labels, label_space):
+    labels_num = [label_space[i] for i in list_labels]
+    return labels_num
 
 
 def df2dialect(df, level):
@@ -313,7 +338,10 @@ def whole_process(level, train_files):
 if __name__ == '__main__':
     level = 'country'
     train_files = [f'../aggregated_data/{level}_train.tsv']
-    whole_process(level, train_files)
+    #whole_process(level, train_files)
+    print(get_label_space('city'))
+    print(get_label_space('country'))
+    print(get_label_space('region'))
     """
     layer = LayerObject(level, False, train_files,
                         [], 'aggregate_city/MADAR-Corpus-26-train.lines', None, None)

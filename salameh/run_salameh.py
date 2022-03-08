@@ -17,8 +17,10 @@ def run_experiment(aggregated_layers=None, repeat_train=0, repeat_eval=0,
                           word_lm_dir=word_lm_dir,
                           extra=extra, labels=labels)
     d.train(data_path=data_train_path)
-    test_scores = d.eval(data_set=data_test_path, save_labels=labels_test_save)
-    val_scores = d.eval(data_set=data_dev_path, save_labels=labels_dev_save)
+    test_scores = d.eval(
+        data_set='TEST', data_path=data_test_path, save_labels=labels_test_save)
+    val_scores = d.eval(data_set='VALIDATION',
+                        data_path=data_dev_path, save_labels=labels_dev_save)
     d.record_experiment(test_scores, val_scores)
     print(test_scores, val_scores)
 

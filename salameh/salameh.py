@@ -355,34 +355,22 @@ class DialectIdentifier(object):
                                                 analyzer='char',
                                                 tokenizer=lambda x: x.split(' '))
         chunksize = 10 ** 6
-        counter = 0
         for chunk in pd.read_csv(data_path, sep='\t', header=0, chunksize=chunksize):
             x = chunk['original_sentence'].tolist()
-            if counter != 0:
-                word_vectorizer.partial_refit(x)
-                char_vectorizer.partial_refit(x)
-            else:
-                word_vectorizer.fit(x)
-                char_vectorizer.fit(x)
-            counter += 1
+            word_vectorizer.partial_refit(x)
+            char_vectorizer.partial_refit(x)
 
         self._feat_union = FeatureUnion([('wordgrams', word_vectorizer),
                                          ('chargrams', char_vectorizer)])
 
+        print('Build and train main classifier')
         for chunk in pd.read_csv(data_path, sep='\t', header=0, chunksize=chunksize):
             x = chunk['original_sentence'].tolist()
+            x_prepared = self._prepare_sentences(x)
             y = df2dialect(chunk, level)
             y = transform_labels(y, self._label_dict)
-            self._classifier.partial_fit(x, y)
+            self._classifier.partial_fit(x_prepared, y)
         # Build and train main classifier
-        print('Build and train main classifier')
-        self._label_encoder = LabelEncoder()
-        self._label_encoder.fit(y)
-        y_trans = self._label_encoder.transform(y)
-
-        x_prepared = self._prepare_sentences(x)
-
-        self._classifier.fit(x_prepared, y_trans)
 
         self._is_trained = True
 
@@ -631,7 +619,7 @@ class DialectIdentifier(object):
 if __name__ == '__main__':
     d = DialectIdentifier(
         result_file_name='love.json')
-    d.train()
+    d.train_chunks()
     scores = d.eval(data_set='TEST')
     dev = d.eval()
     print(scores)

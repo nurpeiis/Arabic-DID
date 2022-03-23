@@ -7,7 +7,7 @@ import os
 def run_experiment(aggregated_layers=None, repeat_train=0, repeat_eval=0,
                    file_name='results.json', labels_test_save='labels_test.csv', labels_dev_save='labels_dev.csv',
                    char_lm_dir=None, word_lm_dir=None, extra=True,
-                   data_train_path=None, data_test_path='TEST', data_dev_path='VALIDATION', labels=ADIDA_LABELS):
+                   data_train_path=None, data_test_path='TEST', data_dev_path='VALIDATION', labels=ADIDA_LABELS, chunk_train=False):
     print('Running Experiment')
     d = DialectIdentifier(result_file_name=file_name,
                           aggregated_layers=aggregated_layers,
@@ -16,7 +16,11 @@ def run_experiment(aggregated_layers=None, repeat_train=0, repeat_eval=0,
                           char_lm_dir=char_lm_dir,
                           word_lm_dir=word_lm_dir,
                           extra=extra, labels=labels)
-    d.train(data_path=data_train_path)
+    if not chunk_train:
+        d.train(data_path=data_train_path)
+    else:
+        d.train_chunks(data_path=data_train_path)
+
     test_scores = d.eval(
         data_set='TEST', data_path=data_test_path, save_labels=labels_test_save)
     val_scores = d.eval(data_set='VALIDATION',
@@ -171,12 +175,15 @@ def run_aggregated_experiment(level):
     print(f'Aggregated experiment on {level} level')
     labels = [i[:-5]
               for i in os.listdir(f'aggregated_{level}/lm/char') if 'arpa' in i]
+    chunk_train = False
+    if level != 'city':
+        chunk_train = True
     run_experiment(aggregated_layers=None, repeat_train=0,
                    repeat_eval=0, file_name='aggregated_result.json',
                    labels_test_save=f'labels_agg_{level}_test.csv', labels_dev_save=f'labels_agg_{level}_dev.csv',
                    char_lm_dir=f'aggregated_{level}/lm/char', word_lm_dir=f'aggregated_{level}/lm/word',
                    extra=False, data_train_path=[f'../aggregated_data/{level}_train.tsv'],
-                   data_test_path=[f'../aggregated_data/{level}_test.tsv'], data_dev_path=[f'../aggregated_data/{level}_dev.tsv'], labels=labels)
+                   data_test_path=[f'../aggregated_data/{level}_test.tsv'], data_dev_path=[f'../aggregated_data/{level}_dev.tsv'], labels=labels, chunk_train=chunk_train)
 
 
 if __name__ == '__main__':

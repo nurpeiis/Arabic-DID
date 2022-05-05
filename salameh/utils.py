@@ -13,6 +13,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import normalize
 from sklearn.metrics import accuracy_score, f1_score, recall_score
 from sklearn.metrics import precision_score
+from camel_tools.tokenizers.word import simple_word_tokenize
 
 
 class LayerObject:
@@ -119,7 +120,7 @@ class LayerObject:
         word_ngram_range = (1, 1)
 
         y, sentences = file2dialectsentence(
-            [self.train_path], self.level, repeat=repeat)
+            [self.train_path], self.level, repeat, True)
 
         # Build and train aggregated classifier
         self.label_encoder = LabelEncoder()
@@ -223,26 +224,27 @@ def file2dialectsentence_chunks(files, level, repeat=0, chunksize=1000000):
         additional_dfs = pd.read_csv(
             files[i], sep='\t', header=0,  chunksize=chunksize)
 
-    return df2dialectsentence(df, level, repeat)
+    return df2dialectsentence(dfs, level, repeat)
 
 
-def file2dialectsentence(files, level, repeat=0):
+def file2dialectsentence(files, level, repeat=0, from_model=False):
     df = pd.read_csv(files[0], sep='\t', header=0)
     for i in range(1, len(files)):
         df = df.append(pd.read_csv(files[i], sep='\t', header=0))
 
-    return df2dialectsentence(df, level, repeat)
+    return df2dialectsentence(df, level, repeat, from_model)
 
 
-def df2dialectsentence(df, level, repeat=0):
+def df2dialectsentence(df, level, repeat=0, from_model=False):
     """
         df: pd.DataFrame with sentences
         level: string representation of the level, whether it be 'city', 'country', or 'region'
         return y, x
     """
-    sentence_list = df['original_sentence'].tolist()
-    if repeat > 0:
-        sentence_list = [' '.join([i]*(repeat+1)) for i in sentence_list]
+    sentence_list = [' '.join(simple_word_tokenize(i))
+                     for i in df['original_sentence'].tolist()]
+    if from_model:
+        sentence_list = df['original_sentence'].tolist()
 
     dialect_list = df2dialect(df, level)
     return dialect_list, sentence_list
@@ -327,22 +329,32 @@ def whole_process(level, train_files):
     create_directory(folder)
     print('Putting each dialect into file')
     dialect_dict2file(dialect_dict, folder)
-    """
     print('Creating KenLM for each dialect')
     dialect_dict_to_lm(dialect_dict, folder)
-    """
     end = timeit.default_timer()
     print('Finished in ', end - start)
 
 
 if __name__ == '__main__':
-    level = 'country'
-    train_files = [f'../aggregated_data/{level}_train.tsv']
-    #whole_process(level, train_files)
+
+    levels = ['city']
+
+    for level in levels:
+        train_files = [f'../aggregated_data/{level}_train.tsv']
+        #whole_process(level, train_files)
+
+    with open('../labels/city_label_id.txt', 'r') as f:
+        lines = [i.split(',') for i in f.readlines()]
+        dicctt = {}
+        for line in lines:
+            dicctt[line[0].replace(' ', '-')] = line[1]
+
+    print(dicctt)
+
+    """
     print(get_label_space('city'))
     print(get_label_space('country'))
     print(get_label_space('region'))
-    """
     layer = LayerObject(level, False, train_files,
                         [], 'aggregate_city/MADAR-Corpus-26-train.lines', None, None)
     """

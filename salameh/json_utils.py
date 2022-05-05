@@ -47,6 +47,6 @@ if __name__ == '__main__':
     json_to_tsv('results_salameh_plus.json',
                 'results_salameh_plus.tsv')
     """
-    json_to_tsv('layers_combo.json',
-                'layers_combo.tsv')
+    json_to_tsv('layers_combo_new_lm.json',
+                'layers_combo_new.tsv')
 # parse_json('results_salameh_repeat_train.json')
